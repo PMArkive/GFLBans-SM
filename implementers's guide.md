@@ -181,7 +181,7 @@ The following parameters are accepted:
 |gs_service|str|The service component of the player object, usually `steam`|
 |gs_id|str|The id component of the player object. For steam, this is their steamid64|
 |ip|str|The IP address of the player|
-|include_other_servers|str|Whether or not to accept global infractions issued on other servers. Should be configurable by the manager||
+|include_other_servers|bool|Whether or not to accept global infractions issued on other servers. Should be configurable by the manager||
 
 GFLBans will reply with an object like:
 
