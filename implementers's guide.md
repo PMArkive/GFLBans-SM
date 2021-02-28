@@ -85,7 +85,7 @@ The gflbans plugin should periodically send data to gflbans so that gflbans can:
  - Update infractions that only decrement while the player is online
  - Display information about the server in the Web UI
 
-The heartbeat route is present at /api/v1/gs/heartbeat and should be POSTed do with JSON data in the following format:
+The heartbeat route is present at /api/v1/gs/heartbeat and should be POSTed with JSON data in the following format:
 
 ```Python
 class Heartbeat:
