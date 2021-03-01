@@ -13,6 +13,12 @@ char g_sAPIKey[128];
 char g_sAPIServerID[32];
 
 char g_sMap[64];
+char g_sMod[4];
+char g_sServerHostname[128];
+
+int g_iMaxPlayers;
+
+bool g_bServerLocked;
 
 Handle hbTimer;
 
@@ -37,18 +43,39 @@ public void OnPluginStart()
     g_cvAPIKey = CreateConVar("gflbans_api_key", "", "GFLBans API Key", FCVAR_PROTECTED);
     g_cvAPIServerID = CreateConVar("gflbans_api_svid", "", "GFLBans API Server ID.", FCVAR_PROTECTED);
 
-    g_sAPIUrl = GetConVarString(g_cvAPIUrl, sizeof(g_sAPIUrl));
-    g_sAPIKey = GetConVarString(g_cvAPIKey, sizeof(g_sAPIKey));
-    g_sAPIServerID = GetConVarString(g_cvAPIServerID, sizeof(g_sAPIServerID));
+    GetConVarString(g_cvAPIUrl, g_sAPIUrl, sizeof(g_sAPIUrl));
+    GetConVarString(g_cvAPIKey, g_sAPIKey, sizeof(g_sAPIKey));
+    GetConVarString(g_cvAPIServerID, g_sAPIServerID, sizeof(g_sAPIServerID));
 
     AutoExecConfig(true, "GFLBans-Core");
+
+    if (GetEngineVersion() == Engine_CSGO)
+        Format(g_sMod, sizeof(g_sMod), "csgo");
+    else if (GetEngineVersion() == Engine_CSS)
+        Format(g_sMod, sizeof(g_sMod), "css");
+    else if (GetEngineVersion() == Engine_TF2)
+        Format(g_sMod, sizeof(g_sMod), "tf2");
+    else
+        SetFailState("[GFLBans] This plugin is not compatible with the current game.");
 }
 
 public void OnMapStart()
 {
-    GetCurrentMap(g_sMap, sizeof(g_sMap));
+    char svPwd[128];
 
-    // Start the Heartbeat timer - repeats every minute.
+    // Grab whatever is needed for the Heartbeat pulse.
+    GetCurrentMap(g_sMap, sizeof(g_sMap));
+    g_iMaxPlayers = GetMaxHumanPlayers();
+    GetConVarString(FindConVar("hostname"), g_sServerHostname, sizeof(g_sServerHostname));
+
+    // Check if the server is locked:
+    GetConVarString(FindConVar("sv_password"), svPwd, sizeof(svPwd));
+    if(!StrEqual(svPwd, ""))
+        g_bServerLocked = true;
+    else 
+        g_bServerLocked = false;
+
+    // Start the Heartbeat pulse timer - repeats every minute.
     hbTimer = CreateTimer(60.0, API_Heartbeat, _, TIMER_REPEAT);
 }
 
