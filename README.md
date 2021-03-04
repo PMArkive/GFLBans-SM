@@ -1,3 +1,3 @@
 # GFLBans for SourceMod
 
-Soon™
+[Refer to the wiki.](https://github.com/GFLClan/GFLBans-SM/wiki)
