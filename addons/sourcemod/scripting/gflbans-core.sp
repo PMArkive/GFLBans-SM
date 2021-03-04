@@ -9,12 +9,13 @@ ConVar g_cvAPIUrl;
 ConVar g_cvAPIKey;
 ConVar g_cvAPIServerID;
 char g_sAPIUrl[512];
-char g_sAPIKey[128];
+char g_sAPIKey[256];
 char g_sAPIServerID[32];
 
 char g_sMap[64];
-char g_sMod[4];
+char g_sMod[16];
 char g_sServerHostname[128];
+char g_sServerOS[8];
 
 int g_iMaxPlayers;
 
@@ -49,14 +50,11 @@ public void OnPluginStart()
 
     AutoExecConfig(true, "GFLBans-Core");
 
-    if (GetEngineVersion() == Engine_CSGO)
-        Format(g_sMod, sizeof(g_sMod), "csgo");
-    else if (GetEngineVersion() == Engine_CSS)
-        Format(g_sMod, sizeof(g_sMod), "css");
-    else if (GetEngineVersion() == Engine_TF2)
-        Format(g_sMod, sizeof(g_sMod), "tf2");
-    else
-        SetFailState("[GFLBans] This plugin is not compatible with the current game.");
+    // Check what game we are on.
+    CheckMod();
+
+    // Check what OS we are on.
+    CheckOS();
 }
 
 public void OnMapStart()
@@ -103,4 +101,25 @@ public Action API_Heartbeat(Handle timer)
     */
 
     return Plugin_Continue;
+}
+
+void CheckMod()
+{
+    if (GetEngineVersion() == Engine_CSGO)
+        Format(g_sMod, sizeof(g_sMod), "csgo");
+    else if (GetEngineVersion() == Engine_CSS)
+        Format(g_sMod, sizeof(g_sMod), "css");
+    else if (GetEngineVersion() == Engine_TF2)
+        Format(g_sMod, sizeof(g_sMod), "tf2");
+    else
+        SetFailState("[GFLBans] This plugin is not compatible with the current game."); // Default to disabling the plugin if the game is unidentified.
+}
+
+void CheckOS()
+{
+    Handle GData = LoadGameConfigFile("gflbans.gamedata.txt");
+    if (GameConfGetOffset(GData, "CheckOS") == 1) // CheckOS = 1 for Windows, CheckOS = 2 for Linux.
+        Format(g_sServerOS, sizeof(g_sServerOS), "windows");
+    else
+        Format(g_sServerOS, sizeof(g_sServerOS), "linux"); // We are falling back to Linux.
 }

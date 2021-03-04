@@ -1,0 +1,14 @@
+"Games"
+{
+    "#default"
+    {
+        "Offsets"
+        {
+            "OSCheck"
+            {
+                "windows"   "1"
+                "linux"     "2"
+            }
+        }
+    }
+}
