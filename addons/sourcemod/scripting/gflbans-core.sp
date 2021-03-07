@@ -1,5 +1,5 @@
 #include <sourcemod>
-#include <SteamWorks>
+#include <ripext>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -14,6 +14,7 @@ ConVar g_cvAcceptGlobalBans;
 char g_sAPIUrl[512];
 char g_sAPIKey[256];
 char g_sAPIServerID[32];
+char g_sAPIAuthHeader[512];
 char g_sMap[64];
 char g_sMod[16];
 char g_sServerHostname[128];
@@ -62,6 +63,7 @@ public void OnConfigsExecuted()
     GetConVarString(g_cvAPIUrl, g_sAPIUrl, sizeof(g_sAPIUrl));
     GetConVarString(g_cvAPIKey, g_sAPIKey, sizeof(g_sAPIKey));
     GetConVarString(g_cvAPIServerID, g_sAPIServerID, sizeof(g_sAPIServerID));
+    Format(g_sAPIAuthHeader, sizeof(g_sAPIAuthHeader), "SERVER %s %s", g_sAPIServerID, g_sAPIKey);
 
     // Check what game we are on.
     CheckMod();
@@ -84,26 +86,37 @@ public void OnMapEnd()
 
 public Action API_Heartbeat(Handle timer)
 {
-    char requestURL[512], requestContent[512];
+    char requestURL[512];
     Format(requestURL, sizeof(requestURL), "%s/gs/heartbeat", g_sAPIUrl);
-    Format(requestContent, sizeof(requestContent), "{}");
 
     // Grab whatever is needed for the Heartbeat pulse.
     GetServerInfo();
     g_bAcceptGlobalBans = GetConVarBool(g_cvAcceptGlobalBans);
+    
+    JSONObject jsonHeartbeat = new JSONObject();
+    jsonHeartbeat.SetString("hostname", g_sServerHostname);
+    jsonHeartbeat.SetInt("max_slots", g_iMaxPlayers);
+    // TO-DO: LIST OF PLAYERS ON SERVER
+    jsonHeartbeat.SetString("operating_system", g_sServerOS);
+    jsonHeartbeat.SetString("mod", g_sMod);
+    jsonHeartbeat.SetString("map", g_sMap);
+    jsonHeartbeat.SetBool("locked", g_bServerLocked);
+    jsonHeartbeat.SetBool("include_other_servers", g_bAcceptGlobalBans);
 
-    Handle hbReq = SteamWorks_CreateHTTPRequest(k_EHTTPMethodPOST, requestURL);
-    if (hbReq == INVALID_HANDLE)
-    {
-        LogError("[GFLBANS] FATAL ERROR >> Failed to POST heartbeat due to a connection fault.");
-        return Plugin_Continue;
-    }
-
-    /*
-    TO-DO: Use the API spec and make a heartbeat POST here.
-    */
+    HTTPClient httpClient = new HTTPClient(requestURL);
+    httpClient.SetHeader("Authorization", g_sAPIAuthHeader);
+    httpClient.Post("", jsonHeartbeat, OnHeartbeatPulse);
 
     return Plugin_Continue;
+}
+
+void OnHeartbeatPulse(HTTPResponse response, any value)
+{
+    if (response.Status != HTTPStatus_Created)
+    {
+        LogError("[GFLBANS] FATAL ERROR >> Failed to POST heartbeat due to a connection fault.");
+        return;
+    }
 }
 
 void CheckMod()
