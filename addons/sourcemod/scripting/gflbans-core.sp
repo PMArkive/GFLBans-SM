@@ -111,9 +111,9 @@ void CheckMod()
     if (GetEngineVersion() == Engine_CSGO)
         Format(g_sMod, sizeof(g_sMod), "csgo");
     else if (GetEngineVersion() == Engine_CSS)
-        Format(g_sMod, sizeof(g_sMod), "css");
+        Format(g_sMod, sizeof(g_sMod), "cstrike");
     else if (GetEngineVersion() == Engine_TF2)
-        Format(g_sMod, sizeof(g_sMod), "tf2");
+        Format(g_sMod, sizeof(g_sMod), "tf");
     else
         SetFailState("[GFLBans] This plugin is not compatible with the current game."); // Default to disabling the plugin if the game is unidentified.
 }
