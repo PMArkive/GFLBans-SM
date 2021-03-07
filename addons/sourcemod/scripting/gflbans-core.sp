@@ -4,24 +4,25 @@
 #pragma semicolon 1
 #pragma newdecls required
 
+#include "GFLBans/natives.sp"
+
 /* ===== Global Variables ===== */
 ConVar g_cvAPIUrl;
 ConVar g_cvAPIKey;
 ConVar g_cvAPIServerID;
+ConVar g_cvAcceptGlobalBans;
 char g_sAPIUrl[512];
 char g_sAPIKey[256];
 char g_sAPIServerID[32];
-
 char g_sMap[64];
 char g_sMod[16];
 char g_sServerHostname[128];
 char g_sServerOS[8];
-
 int g_iMaxPlayers;
-
 bool g_bServerLocked;
-
+bool g_bAcceptGlobalBans;
 Handle hbTimer;
+Handle g_hGData;
 
 /* ===== Definitions ===== */
 #define PREFIX "\x01[\x0CGFLBans\x01]"
@@ -38,17 +39,29 @@ public Plugin myinfo =
 
 /* ===== Main Code ===== */
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+    CreateNatives();
+    return APLRes_Success;
+}
+
 public void OnPluginStart()
 {
-    g_cvAPIUrl = CreateConVar("gflbans_api_url", "bans.gflclan.com/api/v1", "GFLBans API URL");
-    g_cvAPIKey = CreateConVar("gflbans_api_key", "", "GFLBans API Key", FCVAR_PROTECTED);
-    g_cvAPIServerID = CreateConVar("gflbans_api_svid", "", "GFLBans API Server ID.", FCVAR_PROTECTED);
+    g_hGData = LoadGameConfigFile("gflbans.gamedata.txt");
 
+    g_cvAPIUrl = CreateConVar("gb_api_url", "bans.gflclan.com/api/v1", "GFLBans API URL");
+    g_cvAPIKey = CreateConVar("gb_api_key", "", "GFLBans API Key", FCVAR_PROTECTED);
+    g_cvAPIServerID = CreateConVar("gb_api_svid", "", "GFLBans API Server ID.", FCVAR_PROTECTED);
+    g_cvAcceptGlobalBans = CreateConVar("gb_accept_global_infractions", "1", "Accept global GFL bans. 1 = Enabled, 0 = Disabled.", _, true, 0.0, true, 1.0);
+
+    AutoExecConfig(true, "GFLBans-Core");
+}
+
+public void OnConfigsExecuted()
+{
     GetConVarString(g_cvAPIUrl, g_sAPIUrl, sizeof(g_sAPIUrl));
     GetConVarString(g_cvAPIKey, g_sAPIKey, sizeof(g_sAPIKey));
     GetConVarString(g_cvAPIServerID, g_sAPIServerID, sizeof(g_sAPIServerID));
-
-    AutoExecConfig(true, "GFLBans-Core");
 
     // Check what game we are on.
     CheckMod();
@@ -59,20 +72,6 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-    char svPwd[128];
-
-    // Grab whatever is needed for the Heartbeat pulse.
-    GetCurrentMap(g_sMap, sizeof(g_sMap));
-    g_iMaxPlayers = GetMaxHumanPlayers();
-    GetConVarString(FindConVar("hostname"), g_sServerHostname, sizeof(g_sServerHostname));
-
-    // Check if the server is locked:
-    GetConVarString(FindConVar("sv_password"), svPwd, sizeof(svPwd));
-    if(!StrEqual(svPwd, ""))
-        g_bServerLocked = true;
-    else 
-        g_bServerLocked = false;
-
     // Start the Heartbeat pulse timer - repeats every minute.
     hbTimer = CreateTimer(60.0, API_Heartbeat, _, TIMER_REPEAT);
 }
@@ -88,6 +87,10 @@ public Action API_Heartbeat(Handle timer)
     char requestURL[512], requestContent[512];
     Format(requestURL, sizeof(requestURL), "%s/gs/heartbeat", g_sAPIUrl);
     Format(requestContent, sizeof(requestContent), "{}");
+
+    // Grab whatever is needed for the Heartbeat pulse.
+    GetServerInfo();
+    g_bAcceptGlobalBans = GetConVarBool(g_cvAcceptGlobalBans);
 
     Handle hbReq = SteamWorks_CreateHTTPRequest(k_EHTTPMethodPOST, requestURL);
     if (hbReq == INVALID_HANDLE)
@@ -117,9 +120,25 @@ void CheckMod()
 
 void CheckOS()
 {
-    Handle GData = LoadGameConfigFile("gflbans.gamedata.txt");
-    if (GameConfGetOffset(GData, "CheckOS") == 1) // CheckOS = 1 for Windows, CheckOS = 2 for Linux.
+    if (GameConfGetOffset(g_hGData, "CheckOS") == 1) // CheckOS = 1 for Windows, CheckOS = 2 for Linux.
         Format(g_sServerOS, sizeof(g_sServerOS), "windows");
     else
         Format(g_sServerOS, sizeof(g_sServerOS), "linux"); // We are falling back to Linux.
+}
+
+void GetServerInfo()
+{
+    char svPwd[128];
+
+    GetCurrentMap(g_sMap, sizeof(g_sMap));
+    g_iMaxPlayers = GetMaxHumanPlayers();
+    GetConVarString(FindConVar("hostname"), g_sServerHostname, sizeof(g_sServerHostname));
+
+    // Check if the server is locked:
+    GetConVarString(FindConVar("sv_password"), svPwd, sizeof(svPwd));
+    if(!StrEqual(svPwd, ""))
+        g_bServerLocked = true;
+    else 
+        g_bServerLocked = false;
+
 }
