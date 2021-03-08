@@ -5,6 +5,7 @@
 #pragma newdecls required
 
 #include "GFLBans/natives.sp"
+#include "GFLBans/misc.sp"
 
 /* ===== Global Variables ===== */
 ConVar g_cvAPIUrl;
@@ -66,10 +67,10 @@ public void OnConfigsExecuted()
     Format(g_sAPIAuthHeader, sizeof(g_sAPIAuthHeader), "SERVER %s %s", g_sAPIServerID, g_sAPIKey);
 
     // Check what game we are on.
-    CheckMod();
+    CheckMod(g_sMod);
 
     // Check what OS we are on.
-    CheckOS();
+    CheckOS(g_hGData, g_sServerOS);
 }
 
 public void OnMapStart()
@@ -148,26 +149,6 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
     // TO-DO: Whatever needs to be done after heartbeat pulse has been sent.
 }
 
-void CheckMod()
-{
-    if (GetEngineVersion() == Engine_CSGO)
-        Format(g_sMod, sizeof(g_sMod), "csgo");
-    else if (GetEngineVersion() == Engine_CSS)
-        Format(g_sMod, sizeof(g_sMod), "cstrike");
-    else if (GetEngineVersion() == Engine_TF2)
-        Format(g_sMod, sizeof(g_sMod), "tf");
-    else
-        SetFailState("[GFLBans] This plugin is not compatible with the current game."); // Default to disabling the plugin if the game is unidentified.
-}
-
-void CheckOS()
-{
-    if (GameConfGetOffset(g_hGData, "CheckOS") == 1) // CheckOS = 1 for Windows, CheckOS = 2 for Linux.
-        Format(g_sServerOS, sizeof(g_sServerOS), "windows");
-    else
-        Format(g_sServerOS, sizeof(g_sServerOS), "linux"); // We are falling back to Linux.
-}
-
 void GetServerInfo()
 {
     char svPwd[128];
@@ -182,5 +163,4 @@ void GetServerInfo()
         g_bServerLocked = true;
     else 
         g_bServerLocked = false;
-
 }
