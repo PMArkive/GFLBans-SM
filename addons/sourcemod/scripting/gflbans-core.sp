@@ -93,30 +93,59 @@ public Action API_Heartbeat(Handle timer)
     GetServerInfo();
     g_bAcceptGlobalBans = GetConVarBool(g_cvAcceptGlobalBans);
     
+    // Populate array list of PlayerObjs.
+    JSONObject PlayerObjIP = new JSONObject();
+    JSONArray playerList = new JSONArray();
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (IsClientInGame(client) && !IsFakeClient(client))
+        {
+            char playerIP[32], playerID64[64];
+
+            GetClientAuthId(client, AuthId_SteamID64, playerID64, sizeof(playerID64), true);
+            GetClientIP(client, playerIP, sizeof(playerIP), true);
+
+            PlayerObjIP.SetString("gs_service", "steam");
+            PlayerObjIP.SetString("gs_id", playerID64);
+            PlayerObjIP.SetString("ip", playerIP);
+
+            // Push current PlayerObj
+            playerList.Push(PlayerObjIP);
+        }
+    }
+
+    // Create heartbeat pulse object.
     JSONObject jsonHeartbeat = new JSONObject();
     jsonHeartbeat.SetString("hostname", g_sServerHostname);
     jsonHeartbeat.SetInt("max_slots", g_iMaxPlayers);
-    // TO-DO: LIST OF PLAYERS ON SERVER
+    jsonHeartbeat.Set("players", playerList); // ngl, no idea if this will work LOL
     jsonHeartbeat.SetString("operating_system", g_sServerOS);
     jsonHeartbeat.SetString("mod", g_sMod);
     jsonHeartbeat.SetString("map", g_sMap);
     jsonHeartbeat.SetBool("locked", g_bServerLocked);
     jsonHeartbeat.SetBool("include_other_servers", g_bAcceptGlobalBans);
 
+    // POST
     HTTPClient httpClient = new HTTPClient(requestURL);
     httpClient.SetHeader("Authorization", g_sAPIAuthHeader);
     httpClient.Post("", jsonHeartbeat, OnHeartbeatPulse);
 
+    // Clean up and continue.
+    delete jsonHeartbeat;
+    delete playerList;
+    delete PlayerObjIP;
     return Plugin_Continue;
 }
 
-void OnHeartbeatPulse(HTTPResponse response, any value)
+void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbeat pulse.
 {
     if (response.Status != HTTPStatus_Created)
     {
         LogError("[GFLBANS] FATAL ERROR >> Failed to POST heartbeat due to a connection fault.");
         return;
     }
+
+    // TO-DO: Whatever needs to be done after heartbeat pulse has been sent.
 }
 
 void CheckMod()
