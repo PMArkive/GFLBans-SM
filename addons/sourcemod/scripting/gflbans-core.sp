@@ -49,7 +49,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-    g_hGData = LoadGameConfigFile("gflbans.gamedata.txt");
+    g_hGData = LoadGameConfigFile("gflbans.games");
 
     g_cvAPIUrl = CreateConVar("gb_api_url", "bans.gflclan.com/api/v1", "GFLBans API URL");
     g_cvAPIKey = CreateConVar("gb_api_key", "", "GFLBans API Key", FCVAR_PROTECTED);
@@ -76,7 +76,7 @@ public void OnConfigsExecuted()
 public void OnMapStart()
 {
     // Start the Heartbeat pulse timer - repeats every minute.
-    hbTimer = CreateTimer(60.0, API_Heartbeat, _, TIMER_REPEAT);
+    hbTimer = CreateTimer(30.0, API_Heartbeat, _, TIMER_REPEAT);
 }
 
 public void OnMapEnd()
@@ -142,7 +142,9 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
 {
     if (response.Status != HTTPStatus_Created)
     {
-        LogError("[GFLBANS] FATAL ERROR >> Failed to POST heartbeat due to a connection fault.");
+        LogError("FATAL ERROR >> Failed to POST Heartbeat Pulse:");
+        LogError("---> g_sAPIUrl = %s", g_sAPIUrl);
+        LogError("---> HTTPResponse = %d", response.Status);
         return;
     }
 
