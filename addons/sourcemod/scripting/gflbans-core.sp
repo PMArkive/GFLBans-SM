@@ -12,6 +12,7 @@ ConVar g_cvAPIUrl;
 ConVar g_cvAPIKey;
 ConVar g_cvAPIServerID;
 ConVar g_cvAcceptGlobalBans;
+ConVar g_cvDebug;
 char g_sAPIUrl[512];
 char g_sAPIKey[256];
 char g_sAPIServerID[32];
@@ -56,6 +57,7 @@ public void OnPluginStart()
     g_cvAPIKey = CreateConVar("gb_api_key", "", "GFLBans API Key", FCVAR_PROTECTED);
     g_cvAPIServerID = CreateConVar("gb_api_svid", "", "GFLBans API Server ID.", FCVAR_PROTECTED);
     g_cvAcceptGlobalBans = CreateConVar("gb_accept_global_infractions", "1", "Accept global GFL bans. 1 = Enabled, 0 = Disabled.", _, true, 0.0, true, 1.0);
+    g_cvDebug = CreateConVar("gb_enable_debug_mode", "0", "Enable detailed logging of actions. 1 = Enabled, 0 = Disabled.", _, true, 0.0, true, 1.0);
 
     AutoExecConfig(true, "GFLBans-Core");
 }
@@ -152,6 +154,11 @@ void OnHeartbeatPulse(HTTPResponse response, any value, const char[] error) // C
         LogError("---> HTTP Status = %d", response.Status);
         LogError("---> ERROR: %s", error);
         return;
+    }
+
+    if (g_cvDebug.BoolValue) // Debug
+    {
+        LogAction(0, -1, "[GFLBans-Core] DEBUG >> 200 - Successfully sent heartbeat pulse.");
     }
 
     // TO-DO: Whatever needs to be done after heartbeat pulse has been sent.
