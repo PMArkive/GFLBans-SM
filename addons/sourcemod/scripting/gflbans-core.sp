@@ -18,13 +18,14 @@ char g_sAPIServerID[32];
 char g_sAPIAuthHeader[512];
 char g_sMap[64];
 char g_sMod[16];
-char g_sServerHostname[128];
+char g_sServerHostname[96];
 char g_sServerOS[8];
 int g_iMaxPlayers;
 bool g_bServerLocked;
 bool g_bAcceptGlobalBans;
 Handle hbTimer;
 Handle g_hGData;
+HTTPClient httpClient;
 
 /* ===== Definitions ===== */
 #define PREFIX "\x01[\x0CGFLBans\x01]"
@@ -43,7 +44,7 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-    CreateNatives();
+    CreateNatives(); // From natives.sp
     return APLRes_Success;
 }
 
@@ -71,6 +72,10 @@ public void OnConfigsExecuted()
 
     // Check what OS we are on.
     CheckOS(g_hGData, g_sServerOS);
+
+    // Start the HTTP Connection.
+    httpClient = new HTTPClient(g_sAPIUrl);
+    httpClient.SetHeader("Authorization", g_sAPIAuthHeader);
 }
 
 public void OnMapStart()
@@ -88,7 +93,7 @@ public void OnMapEnd()
 public Action API_Heartbeat(Handle timer)
 {
     char requestURL[512];
-    Format(requestURL, sizeof(requestURL), "%s/gs/heartbeat", g_sAPIUrl);
+    Format(requestURL, sizeof(requestURL), "gs/heartbeat");
 
     // Grab whatever is needed for the Heartbeat pulse.
     GetServerInfo();
@@ -127,9 +132,7 @@ public Action API_Heartbeat(Handle timer)
     jsonHeartbeat.SetBool("include_other_servers", g_bAcceptGlobalBans);
 
     // POST
-    HTTPClient httpClient = new HTTPClient(requestURL);
-    httpClient.SetHeader("Authorization", g_sAPIAuthHeader);
-    httpClient.Post("", jsonHeartbeat, OnHeartbeatPulse);
+    httpClient.Post(requestURL, jsonHeartbeat, OnHeartbeatPulse);
 
     // Clean up and continue.
     delete jsonHeartbeat;
@@ -138,13 +141,16 @@ public Action API_Heartbeat(Handle timer)
     return Plugin_Continue;
 }
 
-void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbeat pulse.
+void OnHeartbeatPulse(HTTPResponse response, any value, const char[] error) // Callback for heartbeat pulse.
 {
-    if (response.Status != HTTPStatus_Created)
+    if (response.Status != HTTPStatus_OK)
     {
+        char HTTPLocation[128];
+        response.GetHeader("Location", HTTPLocation, sizeof(HTTPLocation));
         LogError("FATAL ERROR >> Failed to POST Heartbeat Pulse:");
-        LogError("---> g_sAPIUrl = %s", g_sAPIUrl);
-        LogError("---> HTTPResponse = %d", response.Status);
+        LogError("---> URL = %s/gs/heartbeat", g_sAPIUrl);
+        LogError("---> HTTP Status = %d", response.Status);
+        LogError("---> ERROR: %s", error);
         return;
     }
 
