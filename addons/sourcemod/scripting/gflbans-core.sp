@@ -4,8 +4,9 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#include "GFLBans/natives.sp"
-#include "GFLBans/misc.sp"
+#include "gflbans-core/natives.sp"
+#include "gflbans-core/misc.sp"
+#include "gflbans-core/api.sp"
 
 /* ===== Global Variables ===== */
 ConVar g_cvAPIUrl;
@@ -23,7 +24,6 @@ char g_sServerHostname[96];
 char g_sServerOS[8];
 int g_iMaxPlayers;
 bool g_bServerLocked;
-bool g_bAcceptGlobalBans;
 Handle hbTimer;
 Handle g_hGData;
 HTTPClient httpClient;
@@ -69,99 +69,30 @@ public void OnConfigsExecuted()
     GetConVarString(g_cvAPIServerID, g_sAPIServerID, sizeof(g_sAPIServerID));
     Format(g_sAPIAuthHeader, sizeof(g_sAPIAuthHeader), "SERVER %s %s", g_sAPIServerID, g_sAPIKey);
 
-    // Check what game we are on.
-    CheckMod(g_sMod);
+    CheckMod(g_sMod); // Check what game we are on.
+    CheckOS(g_hGData, g_sServerOS); // Check what OS we are on.
 
-    // Check what OS we are on.
-    CheckOS(g_hGData, g_sServerOS);
-
-    // Start the HTTP Connection.
+    // Start the HTTP Connection:
     httpClient = new HTTPClient(g_sAPIUrl);
     httpClient.SetHeader("Authorization", g_sAPIAuthHeader);
 }
 
 public void OnMapStart()
 {
-    // Start the Heartbeat pulse timer - repeats every minute.
-    hbTimer = CreateTimer(30.0, API_Heartbeat, _, TIMER_REPEAT);
+    hbTimer = CreateTimer(30.0, pulseTimer, _, TIMER_REPEAT); // Start the Heartbeat pulse timer
+}
+
+public Action pulseTimer(Handle timer)
+{
+    GetServerInfo(); // Grab whatever is needed for the Heartbeat pulse.
+    API_Heartbeat(httpClient, g_sServerHostname, g_iMaxPlayers, g_sServerOS, g_sMod, g_sMap, g_bServerLocked, g_cvAcceptGlobalBans.BoolValue);
+
+    return Plugin_Continue;
 }
 
 public void OnMapEnd()
 {
-    // Close the Heartbeat timer handle (started in OnMapStart)
-    CloseHandle(hbTimer);
-}
-
-public Action API_Heartbeat(Handle timer)
-{
-    char requestURL[512];
-    Format(requestURL, sizeof(requestURL), "gs/heartbeat");
-
-    // Grab whatever is needed for the Heartbeat pulse.
-    GetServerInfo();
-    g_bAcceptGlobalBans = GetConVarBool(g_cvAcceptGlobalBans);
-    
-    // Populate array list of PlayerObjs.
-    JSONObject PlayerObjIP = new JSONObject();
-    JSONArray playerList = new JSONArray();
-    for (int client = 1; client <= MaxClients; client++)
-    {
-        if (IsClientInGame(client) && !IsFakeClient(client))
-        {
-            char playerIP[32], playerID64[64];
-
-            GetClientAuthId(client, AuthId_SteamID64, playerID64, sizeof(playerID64), true);
-            GetClientIP(client, playerIP, sizeof(playerIP), true);
-
-            PlayerObjIP.SetString("gs_service", "steam");
-            PlayerObjIP.SetString("gs_id", playerID64);
-            PlayerObjIP.SetString("ip", playerIP);
-
-            // Push current PlayerObj
-            playerList.Push(PlayerObjIP);
-        }
-    }
-
-    // Create heartbeat pulse object.
-    JSONObject jsonHeartbeat = new JSONObject();
-    jsonHeartbeat.SetString("hostname", g_sServerHostname);
-    jsonHeartbeat.SetInt("max_slots", g_iMaxPlayers);
-    jsonHeartbeat.Set("players", playerList); // ngl, no idea if this will work LOL
-    jsonHeartbeat.SetString("operating_system", g_sServerOS);
-    jsonHeartbeat.SetString("mod", g_sMod);
-    jsonHeartbeat.SetString("map", g_sMap);
-    jsonHeartbeat.SetBool("locked", g_bServerLocked);
-    jsonHeartbeat.SetBool("include_other_servers", g_bAcceptGlobalBans);
-
-    // POST
-    httpClient.Post(requestURL, jsonHeartbeat, OnHeartbeatPulse);
-
-    // Clean up and continue.
-    delete jsonHeartbeat;
-    delete playerList;
-    delete PlayerObjIP;
-    return Plugin_Continue;
-}
-
-void OnHeartbeatPulse(HTTPResponse response, any value, const char[] error) // Callback for heartbeat pulse.
-{
-    if (response.Status != HTTPStatus_OK)
-    {
-        char HTTPLocation[128];
-        response.GetHeader("Location", HTTPLocation, sizeof(HTTPLocation));
-        LogError("FATAL ERROR >> Failed to POST Heartbeat Pulse:");
-        LogError("---> URL = %s/gs/heartbeat", g_sAPIUrl);
-        LogError("---> HTTP Status = %d", response.Status);
-        LogError("---> ERROR: %s", error);
-        return;
-    }
-
-    if (g_cvDebug.BoolValue) // Debug
-    {
-        LogAction(0, -1, "[GFLBans-Core] DEBUG >> 200 - Successfully sent heartbeat pulse.");
-    }
-
-    // TO-DO: Whatever needs to be done after heartbeat pulse has been sent.
+    CloseHandle(hbTimer); // Close the Heartbeat timer handle (started in OnMapStart)
 }
 
 void GetServerInfo()
