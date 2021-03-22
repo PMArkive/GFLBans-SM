@@ -80,12 +80,16 @@ public void OnConfigsExecuted()
 
 public void OnMapStart()
 {
+    // Fire a single heartbeat pulse right when map starts.
+    GetServerInfo(); // Grab whatever is needed for the Heartbeat pulse.
+    API_Heartbeat(httpClient, g_sServerHostname, g_iMaxPlayers, g_sServerOS, g_sMod, g_sMap, g_bServerLocked, g_cvAcceptGlobalBans.BoolValue);
+
     hbTimer = CreateTimer(30.0, pulseTimer, _, TIMER_REPEAT); // Start the Heartbeat pulse timer
 }
 
 public Action pulseTimer(Handle timer)
 {
-    GetServerInfo(); // Grab whatever is needed for the Heartbeat pulse.
+    GetServerInfo(); // Update whatever is needed for the Heartbeat pulse.
     API_Heartbeat(httpClient, g_sServerHostname, g_iMaxPlayers, g_sServerOS, g_sMod, g_sMap, g_bServerLocked, g_cvAcceptGlobalBans.BoolValue);
 
     return Plugin_Continue;
@@ -94,6 +98,8 @@ public Action pulseTimer(Handle timer)
 public void OnMapEnd()
 {
     CloseHandle(hbTimer); // Close the Heartbeat timer handle (started in OnMapStart)
+    if (g_cvDebug.BoolValue)
+        LogAction(0, -1, "[GFLBans-Core] DEBUG >> Map is ending, cleaning heartbeat pulse timer handle.");
 }
 
 void GetServerInfo()
