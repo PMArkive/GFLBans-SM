@@ -15,9 +15,6 @@ ConVar g_cvAPIServerID;
 ConVar g_cvAcceptGlobalBans;
 ConVar g_cvDebug;
 char g_sAPIUrl[512];
-char g_sAPIKey[256];
-char g_sAPIServerID[32];
-char g_sAPIAuthHeader[512];
 char g_sMap[64];
 char g_sMod[16];
 char g_sServerHostname[96];
@@ -64,17 +61,21 @@ public void OnPluginStart()
 
 public void OnConfigsExecuted()
 {
+    char APIKey[256];
+    char APIServerID[32];
+    char APIAuthHeader[512];
+
     GetConVarString(g_cvAPIUrl, g_sAPIUrl, sizeof(g_sAPIUrl));
-    GetConVarString(g_cvAPIKey, g_sAPIKey, sizeof(g_sAPIKey));
-    GetConVarString(g_cvAPIServerID, g_sAPIServerID, sizeof(g_sAPIServerID));
-    Format(g_sAPIAuthHeader, sizeof(g_sAPIAuthHeader), "SERVER %s %s", g_sAPIServerID, g_sAPIKey);
+    GetConVarString(g_cvAPIKey, APIKey, sizeof(APIKey));
+    GetConVarString(g_cvAPIServerID, APIServerID, sizeof(APIServerID));
+    Format(APIAuthHeader, sizeof(APIAuthHeader), "SERVER %s %s", APIServerID, APIKey);
 
     CheckMod(g_sMod); // Check what game we are on.
     CheckOS(g_hGData, g_sServerOS); // Check what OS we are on.
 
     // Start the HTTP Connection:
     httpClient = new HTTPClient(g_sAPIUrl);
-    httpClient.SetHeader("Authorization", g_sAPIAuthHeader);
+    httpClient.SetHeader("Authorization", APIAuthHeader);
 }
 
 public void OnMapStart()
