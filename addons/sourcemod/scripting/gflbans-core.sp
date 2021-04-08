@@ -4,38 +4,19 @@
 #pragma semicolon 1
 #pragma newdecls required
 
+#include "gflbans-core/variables.sp"
 #include "gflbans-core/natives.sp"
 #include "gflbans-core/misc.sp"
 #include "gflbans-core/api.sp"
 
-/* ===== Global Variables ===== */
-ConVar g_cvAPIUrl;
-ConVar g_cvAPIKey;
-ConVar g_cvAPIServerID;
-ConVar g_cvAcceptGlobalBans;
-ConVar g_cvDebug;
-char g_sAPIUrl[512];
-char g_sMap[64];
-char g_sMod[16];
-char g_sServerHostname[96];
-char g_sServerOS[8];
-int g_iMaxPlayers;
-bool g_bServerLocked;
-Handle hbTimer;
-Handle g_hGData;
-HTTPClient httpClient;
-
-/* ===== Definitions ===== */
-#define PREFIX "\x01[\x0CGFLBans\x01]"
-
 /* ===== Plugin Info ===== */
 public Plugin myinfo =
 {
-    name        =    "GFLBans - Core",
-    author        =    "Infra",
-    description    =    "GFLBans Core plugin",
-    version        =    "0.3-BETA",
-	url        =    "https://github.com/GFLClan"
+    name		=    PLUGIN_NAME,
+    author		=    PLUGIN_AUTHOR,
+    description	=    PLUGIN_DESCRIPTION,
+    version		=    PLUGIN_VERSION,
+	url			=    PLUGIN_URL
 };
 
 /* ===== Main Code ===== */
@@ -72,6 +53,9 @@ public void OnConfigsExecuted()
 
     CheckMod(g_sMod); // Check what game we are on.
     CheckOS(g_hGData, g_sServerOS); // Check what OS we are on.
+    
+    if(httpClient != null)
+    	delete httpClient;
 
     // Start the HTTP Connection:
     httpClient = new HTTPClient(g_sAPIUrl);
