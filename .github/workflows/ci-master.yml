@@ -60,7 +60,7 @@ jobs:
           mkdir build
           mv ./addons build/
           
-      - name: Remove unnessary files and folders from build
+      - name: Remove unnecessary files and folders from build
         run: |
           rm -rf addons/sourcemod/extensions
           rm -rf addons/sourcemod/configs/ripext
