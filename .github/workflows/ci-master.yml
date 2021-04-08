@@ -22,7 +22,7 @@ jobs:
           SHORT=$(git describe --always --long --dirty)
           SOURCEMOD_PATH=$GITHUB_WORKSPACE/addons/sourcemod
           echo "PLUGIN_VERSION=${{ matrix.SM_VERSION }}.$VERSION.$SHORT" >> $GITHUB_ENV
-          echo "SOURCEMOD_PATH=$SOURCEMOD_PATH >> $GITHUB_ENV
+          echo "SOURCEMOD_PATH=$SOURCEMOD_PATH" >> $GITHUB_ENV
           echo "SCRIPTS_PATH=$SOURCEMOD_PATH/scripting" >> $GITHUB_ENV
           echo "PLUGINS_PATH=$SOURCEMOD_PATH/plugins" >> $GITHUB_ENV
           
