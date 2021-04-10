@@ -1,0 +1,4 @@
+void GFLBansPostAdminCheck(int client)
+{
+	
+}
