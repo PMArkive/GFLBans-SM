@@ -100,7 +100,7 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
         return;
         
     char requestURL[512];
-    Format(requestURL, sizeof(requestURL), "infractions/check?gs_service=steam&gs_id={SteamID64}&ip={PlayerIP}]");
+    Format(requestURL, sizeof(requestURL), "infractions/check?gs_service=steam&gs_id={SteamID64}&ip={PlayerIP}");
     
     char sSteamID64[64], sPlayerIP[20];
     GetClientAuthId(client, AuthId_SteamID64, sSteamID64, sizeof(sSteamID64), true);
@@ -149,16 +149,16 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
         // Additional check to determine if the client has a ban on record, -1 equals a permanent ban:
         if (iClientExpiration > GetTime() || iClientExpiration == -1)
         {
-            char sReason[256], sAdminName[256], sExpirationTime[64];
+            char sReason[256], sAdminName[256], sExpirationTime[64], sDisconnectReason[256];
+            
             infractionsReply.GetReason(view_as<CInfractionSummary>(infractionsReply.Ban), sReason, sizeof(sReason));
             infractionsReply.GetAdminName(view_as<CInfractionSummary>(infractionsReply.Ban), sAdminName, sizeof(sAdminName));
-            FormatSeconds(iClientExpiration - GetTime(), sExpirationTime, sizeof(sExpirationTime));
             
-            char sDisconnectReason[256];
+            FormatSeconds(iClientExpiration - GetTime(), sExpirationTime, sizeof(sExpirationTime));
             Format(sDisconnectReason, sizeof(sDisconnectReason), "%T\n\nADMIN: %s\nREASON: %s\nTIME LEFT: %s", "Banned Player Text", LANG_SERVER, sAdminName, sReason, iClientExpiration != -1 ? sExpirationTime : "PERMANENT");
             
             if (g_cvDebug.BoolValue)
-                ErrorLog("[GFLBans] Rejected client %N due to a ban: %s", client, sDisconnectReason);
+                DebugLog("[GFLBans] Rejected client %N due to a ban: %s", client, sDisconnectReason);
             
             KickClient(client, sDisconnectReason);
         }
