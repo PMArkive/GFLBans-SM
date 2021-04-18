@@ -30,3 +30,15 @@ HTTPClient httpClient;
 #define PREFIX "\x01[\x0CGFLBans\x01]"
 
 /* ===== Enum Struct ===== */
+enum struct PlayerInfo
+{
+    int Gag_Expiration;
+    bool Gag_IsGagged;
+    char Gag_Reason[256];
+    char Gag_AdminName[256];
+    
+    int Mute_Expiration;
+    bool Mute_IsMuted;
+    char Mute_Reason[256];
+    char Mute_AdminName[256];
+}

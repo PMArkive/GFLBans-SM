@@ -1,0 +1,7 @@
+"Phrases"
+{
+    "Banned Player Text"
+    {
+        "en"    "You have been banned by this server, check https://bans.gflclan.com for more info."
+    }
+}

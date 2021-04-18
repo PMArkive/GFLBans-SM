@@ -5,7 +5,7 @@
 
 public SharedPlugin:__pl_gflbans =
 {
-	name = "gflbans-core", 
+	name = "gflbans", 
 	file = "gflbans-core.smx",
 	#if defined REQUIRE_PLUGIN
 	required = 1

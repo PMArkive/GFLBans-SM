@@ -8,40 +8,45 @@
 
 #include "gflbans-core/methodmaps.sp"
 #include "gflbans-core/variables.sp"
+#include "gflbans-core/forwards.sp"
 #include "gflbans-core/logging.sp"
 #include "gflbans-core/natives.sp"
 #include "gflbans-core/misc.sp"
 #include "gflbans-core/api.sp"
 #include "gflbans-core/events.sp"
 #include "gflbans-core/bans.sp"
+#include "gflbans-core/adminmenu.sp"
 
 /* ===== Plugin Info ===== */
 public Plugin myinfo =
 {
-    name		=    PLUGIN_NAME,
-    author		=    PLUGIN_AUTHOR,
-    description	=    PLUGIN_DESCRIPTION,
-    version		=    PLUGIN_VERSION,
-	url			=    PLUGIN_URL
+    name        =   PLUGIN_NAME,
+    author      =   PLUGIN_AUTHOR,
+    description =   PLUGIN_DESCRIPTION,
+    version     =   PLUGIN_VERSION,
+    url         =   PLUGIN_URL
 };
 
 /* ===== Main Code ===== */
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
     CreateNatives(); // From natives.sp
+    CreateForwards(); // From forwards.sp
     return APLRes_Success;
 }
 
 public void OnPluginStart()
 {
+    LoadTranslations("gflbans-core.phrases");
+    
     Handle gameData = LoadGameConfigFile("gflbans.games");
     if (gameData == INVALID_HANDLE)
-		SetFailState("Can't find gflbans.games.txt gamedata.");
+        SetFailState("Can't find gflbans.games.txt gamedata.");
 		
     if (GameConfGetOffset(gameData, "CheckOS") == 1) // CheckOS = 1 for Windows, CheckOS = 2 for Linux.
-	    Format(g_sServerOS, sizeof(g_sServerOS), "windows");
+        Format(g_sServerOS, sizeof(g_sServerOS), "windows");
     else
-	    Format(g_sServerOS, sizeof(g_sServerOS), "linux"); // We are falling back to Linux.
+        Format(g_sServerOS, sizeof(g_sServerOS), "linux"); // We are falling back to Linux.
         
     delete gameData;
 
@@ -89,11 +94,11 @@ public void OnMapEnd()
 {
     CloseHandle(hbTimer); // Close the Heartbeat timer handle (started in OnMapStart)
     if (g_cvDebug.BoolValue)
-        LogAction(0, -1, "[GFLBans-Core] DEBUG >> Map is ending, cleaning heartbeat pulse timer handle.");
+        DebugLog("[GFLBans-Core] DEBUG >> Map is ending, cleaning heartbeat pulse timer handle.");
 }
 
 public void OnClientPostAdminCheck(int client)
 {
-	GFLBansPostAdminCheck(client);
+    API_CheckInfractions(client);
 }
 

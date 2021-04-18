@@ -23,11 +23,11 @@ void PrintToRoot(bool console = false, const char[] message, any ...)
 }
 
 /*********************************************************
- * Logs a message to root players (for debugging)
+ * Logs a message to GFLBans logging folder
  *
- * @param client	The client index of the player
- * @param alive		True if the player should be alive, false if not
- * @return			True if it's a valid client, false if it's not
+ * @param message	The message to log
+ * @param ...		Format message
+ * @noreturn		
  *********************************************************/
 void DebugLog(const char[] message, any ...)
 {

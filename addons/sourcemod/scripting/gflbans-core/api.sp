@@ -1,4 +1,7 @@
-public void API_Heartbeat()
+/***************************************
+ * Heartbeat API
+ **************************************/
+void API_Heartbeat()
 {
 	// Update whatever is needed for the Heartbeat pulse:
     GetServerInfo();
@@ -8,18 +11,19 @@ public void API_Heartbeat()
     Format(requestURL, sizeof(requestURL), "gs/heartbeat");
     
     // Populate array list of PlayerObjs.
-    PlayerObjIPOptional PlayerObjIP = new PlayerObjIPOptional();
     JSONArray playerList = new JSONArray();
     for (int client = 1; client <= MaxClients; client++)
     {
         if (IsClientInGame(client) && !IsFakeClient(client))
         {
+            PlayerObjIPOptional PlayerObjIP = new PlayerObjIPOptional();
             PlayerObjIP.SetService("steam");
             PlayerObjIP.SetID64(client);
             PlayerObjIP.SetIP(client);
 
             // Push current PlayerObj
             playerList.Push(PlayerObjIP);
+            delete PlayerObjIP;
         }
     }
 
@@ -46,7 +50,6 @@ public void API_Heartbeat()
     // Clean up.
     delete jsonHeartbeat;
     delete playerList;
-    delete PlayerObjIP;
 }
 
 void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbeat pulse.
@@ -87,3 +90,92 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
     
     // Do something with the info:
 }
+
+/***************************************
+ * Checking Infractions API
+ **************************************/
+ void API_CheckInfractions(int client)
+ {
+    if (!IsValidClient(client))
+        return;
+        
+    char requestURL[512];
+    Format(requestURL, sizeof(requestURL), "infractions/check?gs_service=steam&gs_id={SteamID64}&ip={PlayerIP}]");
+    
+    char sSteamID64[64], sPlayerIP[20];
+    GetClientAuthId(client, AuthId_SteamID64, sSteamID64, sizeof(sSteamID64), true);
+    GetClientIP(client, sPlayerIP, sizeof(sPlayerIP), true);
+    
+    ReplaceString(requestURL, sizeof(requestURL), "{SteamID64}", sSteamID64);
+    ReplaceString(requestURL, sizeof(requestURL), "{PlayerIP}", sPlayerIP);
+    
+    httpClient.Get(requestURL, OnCheckInfractionsCallback, GetClientUserId(client));
+ }
+ 
+ void OnCheckInfractionsCallback(HTTPResponse response, any data)
+ {
+    int client = GetClientOfUserId(data);
+    
+    if (!client)
+        return;
+        
+    if (response.Status != HTTPStatus_OK)
+    {
+        ErrorLog("FATAL ERROR >> Failed to GET Infractions Check data:");
+        ErrorLog("---> ENDPOINT = /infractions/check");
+        ErrorLog("---> HTTP Status = %d", response.Status);
+        return;
+    }
+    
+    if (response.Data == null)
+    {
+        ErrorLog("FATAL ERROR >> Empty response recieved:");
+        ErrorLog("---> ENDPOINT = /infractions/check");
+        ErrorLog("---> HTTP Status = %d", response.Status);
+        return;
+    }
+    
+    CheckInfractionsReply infractionsReply = view_as<CheckInfractionsReply>(response.Data);
+    
+    /****************************
+    * Get all the relevant data:
+    ****************************/
+    
+    // Bans - Check bans first and kick them if they have an active ban.
+    if (!infractionsReply.IsPunishmentNull(view_as<CInfractionSummary>(infractionsReply.Ban)))
+    {
+        int iClientExpiration = infractionsReply.GetExpiration(view_as<CInfractionSummary>(infractionsReply.Ban));
+        
+        // Additional check to determine if the client has a ban on record, -1 equals a permanent ban:
+        if (iClientExpiration > GetTime() || iClientExpiration == -1)
+        {
+            char sReason[256], sAdminName[256], sExpirationTime[64];
+            infractionsReply.GetReason(view_as<CInfractionSummary>(infractionsReply.Ban), sReason, sizeof(sReason));
+            infractionsReply.GetAdminName(view_as<CInfractionSummary>(infractionsReply.Ban), sAdminName, sizeof(sAdminName));
+            FormatSeconds(iClientExpiration - GetTime(), sExpirationTime, sizeof(sExpirationTime));
+            
+            char sDisconnectReason[256];
+            Format(sDisconnectReason, sizeof(sDisconnectReason), "%T\n\nADMIN: %s\nREASON: %s\nTIME LEFT: %s", "Banned Player Text", LANG_SERVER, sAdminName, sReason, iClientExpiration != -1 ? sExpirationTime : "PERMANENT");
+            
+            if (g_cvDebug.BoolValue)
+                ErrorLog("[GFLBans] Rejected client %N due to a ban: %s", client, sDisconnectReason);
+            
+            KickClient(client, sDisconnectReason);
+        }
+    }
+    
+    // Voice Blocks
+    if (!infractionsReply.IsPunishmentNull(view_as<CInfractionSummary>(infractionsReply.VoiceBlock)))
+    {
+        
+    }
+    
+    // Chat Blocks
+    if (!infractionsReply.IsPunishmentNull(view_as<CInfractionSummary>(infractionsReply.ChatBlock)))
+    {
+        
+    } 
+    
+    // Cleanup.
+    delete infractionsReply;
+ }
