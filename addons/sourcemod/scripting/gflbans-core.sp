@@ -6,7 +6,6 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#include "gflbans-core/methodmaps.sp"
 #include "gflbans-core/variables.sp"
 #include "gflbans-core/forwards.sp"
 #include "gflbans-core/logging.sp"
@@ -15,7 +14,6 @@
 #include "gflbans-core/api.sp"
 #include "gflbans-core/events.sp"
 #include "gflbans-core/bans.sp"
-#include "gflbans-core/adminmenu.sp"
 
 /* ===== Plugin Info ===== */
 public Plugin myinfo =
@@ -38,6 +36,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
     LoadTranslations("gflbans-core.phrases");
+    LoadTranslations("common.phrases");
     
     Handle gameData = LoadGameConfigFile("gflbans.games");
     if (gameData == INVALID_HANDLE)
@@ -53,8 +52,13 @@ public void OnPluginStart()
     g_cvAPIUrl = CreateConVar("gb_api_url", "", "GFLBans API URL");
     g_cvAPIKey = CreateConVar("gb_api_key", "", "GFLBans API Key", FCVAR_PROTECTED);
     g_cvAPIServerID = CreateConVar("gb_api_svid", "", "GFLBans API Server ID.", FCVAR_PROTECTED);
+    
     g_cvAcceptGlobalBans = CreateConVar("gb_accept_global_infractions", "1", "Accept global GFL bans. 1 = Enabled, 0 = Disabled.", _, true, 0.0, true, 1.0);
+    g_cvInfractionScope = CreateConVar("gb_infractions_scope", "1", "Infraction Scope. 1 = Server, 0 = Global.", _, true, 0.0, true, 1.0);
+    
     g_cvDebug = CreateConVar("gb_enable_debug_mode", "1", "Enable detailed logging of actions. 1 = Enabled, 0 = Disabled.", _, true, 0.0, true, 1.0);
+    
+    RegAdminCmd("sm_ban", Command_Ban, ADMFLAG_BAN, "sm_ban <#userid|name> <minutes|0> [reason]");
 
     AutoExecConfig(true, "GFLBans-Core");
 }
@@ -102,3 +106,51 @@ public void OnClientPostAdminCheck(int client)
     API_CheckInfractions(client);
 }
 
+/**
+* Main functions
+*
+* Create punishment
+**/
+void SetupInfraction(int iClient, int iTarget, int iLength, const char[] sReason, PunishmentsList ePunishmentType)
+{
+    CreateInfraction infraction = new CreateInfraction();
+    
+    if (iLength)
+        infraction.Duration = iLength;
+        
+    // Set player:
+    PlayerObjSimple targetObjSimple = new PlayerObjSimple();
+    targetObjSimple.SetService("steam");
+    targetObjSimple.SetID64(iTarget);
+    targetObjSimple.SetIP(iTarget);
+    
+    infraction.SetPlayer(targetObjSimple);
+    
+    // Set admin field if it's not console:
+    if (iClient)
+    {
+        PlayerObjNoIp adminObjNoIp = new PlayerObjNoIp();
+        adminObjNoIp.SetService("steam");
+        adminObjNoIp.SetID64(iClient);
+        
+        infraction.SetAdmin(adminObjNoIp);
+        
+        delete adminObjNoIp;
+    }
+    
+    // Set other fields:
+    infraction.SetReason(sReason);
+    infraction.SetPunishment(ePunishmentType);
+    infraction.SetScope(view_as<InfractionScope>(g_cvInfractionScope.IntValue));
+    infraction.SessionOnly = false;
+    infraction.OnlineOnly = false;
+
+    //API_CreateInfraction();
+    char sData[2048];
+    infraction.ToString(sData, sizeof(sData), JSON_INDENT(4));
+    ErrorLog("Command Setup Infraction: %s", sData);
+    
+    // Cleanup:
+    delete targetObjSimple;
+    delete infraction;
+}

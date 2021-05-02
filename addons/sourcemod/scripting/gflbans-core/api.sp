@@ -1,6 +1,6 @@
 /***************************************
  * Heartbeat API
- **************************************/
+***************************************/
 void API_Heartbeat()
 {
 	// Update whatever is needed for the Heartbeat pulse:
@@ -93,7 +93,7 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
 
 /***************************************
  * Checking Infractions API
- **************************************/
+***************************************/
  void API_CheckInfractions(int client)
  {
     if (!IsValidClient(client))
@@ -179,3 +179,12 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
     // Cleanup.
     delete infractionsReply;
  }
+
+
+/***************************************
+ * Checking Infractions API
+***************************************/
+void API_CreateInfraction(int iClient, int iTarget)
+{
+    
+}

@@ -3,6 +3,9 @@
 #endif
 #define _gflbans_included
 
+#include <gflbans/enums>
+#include <gflbans/methodmaps>
+
 public SharedPlugin:__pl_gflbans =
 {
 	name = "gflbans", 

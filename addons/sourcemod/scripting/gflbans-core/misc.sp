@@ -48,7 +48,7 @@ stock bool IsValidClient(int client, bool bAlive = false)
 * @param seconds The amount of seconds in the timespan
 * @param buffer The buffer to store the result in
 * @param length The max length of the buffer
-*/
+**/
 stock void FormatSeconds(int seconds, char[] buffer, int length) {
 	if (seconds < 60) {
 		Format(buffer, length, "%d second%s", seconds, seconds == 1 ? "":"s");
