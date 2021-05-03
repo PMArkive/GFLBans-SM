@@ -235,7 +235,12 @@ methodmap CreateInfraction < JSONObject
     // We are going to use Initiator -> gs_admin in our admin field:
     public void SetAdmin(PlayerObjNoIp playerObjNoIp)
     {
-        this.Set("admin", playerObjNoIp);
+        JSONObject gsAdmin = new JSONObject();
+        gsAdmin.Set("gs_admin", playerObjNoIp);
+        
+        this.Set("admin", gsAdmin);
+        
+        delete gsAdmin;
     }
     
     public void SetReason(const char[] buffer)
