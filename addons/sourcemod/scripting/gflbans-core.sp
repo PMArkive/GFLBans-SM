@@ -145,10 +145,7 @@ void SetupInfraction(int iClient, int iTarget, int iLength, const char[] sReason
     infraction.SessionOnly = false;
     infraction.OnlineOnly = false;
 
-    //API_CreateInfraction();
-    char sData[2048];
-    infraction.ToString(sData, sizeof(sData), JSON_INDENT(4));
-    ErrorLog("Command Setup Infraction: %s", sData);
+    API_CreateInfraction(iClient, iTarget, iLength, sReason, ePunishmentType, infraction);
     
     // Cleanup:
     delete targetObjSimple;

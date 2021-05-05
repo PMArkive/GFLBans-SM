@@ -182,9 +182,81 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
 
 
 /***************************************
- * Checking Infractions API
+ * Create Infractions API
 ***************************************/
-void API_CreateInfraction(int iClient, int iTarget)
+void API_CreateInfraction(int iClient, int iTarget, int iLength, const char[] sReason, PunishmentsList ePunishment, CreateInfraction infraction)
 {
+    char requestURL[512];
+    Format(requestURL, sizeof(requestURL), "infractions/");
     
+    if (g_cvDebug.BoolValue)
+    {
+        char sData[2048];
+        infraction.ToString(sData, sizeof(sData), JSON_INDENT(4));
+        DebugLog("API_CreateInfraction %s", sData);
+    }
+    
+    DataPack dp = new DataPack();
+    dp.WriteCell(iClient);
+    dp.WriteCell(iTarget);
+    dp.WriteCell(iLength);
+    dp.WriteString(sReason);
+    dp.WriteCell(ePunishment);
+    dp.Reset();
+    
+    httpClient.Post(requestURL, infraction, OnCreateInfractionsCallback, dp);
+}
+
+void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[] sError)
+{
+    int iClient = dp.ReadCell();
+    int iTarget = dp.ReadCell();
+    int iLength = dp.ReadCell();
+    
+    char sReason[256];
+    dp.ReadString(sReason, sizeof(sReason));
+    
+    int ePunishment = dp.ReadCell();
+    
+    char sAdminName[64];
+    GetClientName(iClient, sAdminName, sizeof(sAdminName));
+    
+    char sTargetName[64];
+    GetClientName(iTarget, sTargetName, sizeof(sTargetName));
+    
+    if (response.Status != HTTPStatus_OK)
+    {
+        ErrorLog("FATAL ERROR >> Failed to POST CreateInfractions:");
+        ErrorLog("---> ENDPOINT = /infractions/");
+        ErrorLog("---> HTTP Status = %d", response.Status);
+        PrintToChat(iClient, "%s %t", PREFIX, "API Ban Failure", response.Status);
+        return;
+    }
+    
+    if (response.Data == null)
+    {
+        ErrorLog("FATAL ERROR >> Empty response recieved:");
+        ErrorLog("---> ENDPOINT = /infractions/");
+        ErrorLog("---> HTTP Status = %d", response.Status);
+        PrintToChat(iClient, "%s Something went wrong with the API, please contact a higher up...", PREFIX);
+        return;
+    }
+    
+    if (!iLength)
+        ShowActivityEx(iClient, PREFIX, "%t", "PermBanned Player", sTargetName, sReason);
+    else
+        ShowActivityEx(iClient, PREFIX, "%t", "Banned Player", iTarget, iLength, sReason);
+        
+    LogAction(iClient, iTarget, "%t", "Ban Log", iClient, iTarget, iLength, sReason);
+    
+    if (IsValidClient(iTarget))
+    {
+        char sDisconnectReason[256], sExpirationTime[64];
+        FormatSeconds(iLength * 60, sExpirationTime, sizeof(sExpirationTime));
+        
+        Format(sDisconnectReason, sizeof(sDisconnectReason), "%T\n\nADMIN: %s\nREASON: %s\nTIME LEFT: %s", "Banned Player Text", LANG_SERVER, sAdminName, sReason, iLength != 0 ? sExpirationTime : "PERMANENT");
+        KickClient(iTarget, sDisconnectReason);
+    }
+    
+    delete dp;
 }

@@ -4,4 +4,33 @@
     {
         "en"    "You have been banned by this server, check https://bans.gflclan.com for more info."
     }
+
+    "InsufficientPermBanPerms"
+    {
+        "en"        "Unable to permanent ban. Insufficient permissions."
+    }
+
+    "API Ban Failure"
+    {
+        "#format"   "{1:d}"
+        "en"        "Failed to ban using API - Status Code: {1}."
+    }
+
+    "PermBanned Player"
+    {
+        "#format"   "{1:s},{2:s}"
+        "en"        "Permanently banned {1}. Reason: {2}"
+    }
+
+    "Banned Player"
+    {
+        "#format"   "{1:N},{2:d},{3:s}"
+        "en"        "Banned {1} for {2} minutes. Reason: {3}"
+    }
+
+    "Ban Log"
+    {
+        "#format"   "{1:L},{2:L},{3:d},{4:s}"
+        "en"        "\"{1}\" banned \"{2}\" (minutes: {3}) (reason: {4})"
+    }
 }

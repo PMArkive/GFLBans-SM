@@ -223,7 +223,7 @@ methodmap CreateInfraction < JSONObject
     {
         public set(int duration)
         {
-            this.SetInt("duration", duration);
+            this.SetInt("duration", duration * 60);
         }
     }
     
