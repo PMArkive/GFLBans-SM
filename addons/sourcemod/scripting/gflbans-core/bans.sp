@@ -35,6 +35,6 @@ public Action Command_Ban (int client, int args)
         Format(sReason, sizeof(sReason), "%s %s", sReason, sBuffer);
     }
     
-    SetupInfraction(client, iTarget, iBanTime, sReason, PUNISHMENT_BAN);
+    SetupInfraction(client, iTarget, iBanTime, sReason, view_as<int>(P_BAN));
     return Plugin_Handled;
 }

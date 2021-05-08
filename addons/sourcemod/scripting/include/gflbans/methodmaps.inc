@@ -248,35 +248,52 @@ methodmap CreateInfraction < JSONObject
         this.SetString("reason", buffer);
     }
     
-    public void SetPunishment(PunishmentsList punishment)
+    public void SetPunishment(int iPunishmentFlags)
     {
-        char sBuffer[32];
-        switch(punishment)
-        {
-            case PUNISHMENT_VOICE_BLOCK:
-            {
-                Format(sBuffer, sizeof(sBuffer), "voice_block");
-            }
-            case PUNISHMENT_CHAT_BLOCK:
-            {
-                Format(sBuffer, sizeof(sBuffer), "chat_block");
-            }
-            case PUNISHMENT_BAN:
-            {
-                Format(sBuffer, sizeof(sBuffer), "ban");
-            }
-            case PUNISHMENT_ADMIN_CHAT_BLOCK:
-            {
-                Format(sBuffer, sizeof(sBuffer), "admin_chat_block");
-            }
-            case PUNISHMENT_CALL_ADMIN_BLOCK:
-            {
-                Format(sBuffer, sizeof(sBuffer), "call_admin_block");
-            }
-        }
-        
+//        char sBuffer[32];
+//        switch(punishment)
+//        {
+//            case PUNISHMENT_VOICE_BLOCK:
+//            {
+//                Format(sBuffer, sizeof(sBuffer), "voice_block");
+//            }
+//            case PUNISHMENT_CHAT_BLOCK:
+//            {
+//                Format(sBuffer, sizeof(sBuffer), "chat_block");
+//            }
+//            case PUNISHMENT_BAN:
+//            {
+//                Format(sBuffer, sizeof(sBuffer), "ban");
+//            }
+//            case PUNISHMENT_ADMIN_CHAT_BLOCK:
+//            {
+//                Format(sBuffer, sizeof(sBuffer), "admin_chat_block");
+//            }
+//            case PUNISHMENT_CALL_ADMIN_BLOCK:
+//            {
+//                Format(sBuffer, sizeof(sBuffer), "call_admin_block");
+//            }
+//        }
+//        
+//        JSONArray punishmentArray = new JSONArray();
+//        punishmentArray.PushString(sBuffer);
+
         JSONArray punishmentArray = new JSONArray();
-        punishmentArray.PushString(sBuffer);
+        
+        if (iPunishmentFlags & BITS_VOICE_BLOCK)
+            punishmentArray.PushString("voice_block");
+            
+        if (iPunishmentFlags & BITS_CHAT_BLOCK)
+            punishmentArray.PushString("chat_block");
+        
+        if (iPunishmentFlags & BITS_BAN)
+            punishmentArray.PushString("ban");
+            
+        if (iPunishmentFlags & BITS_ADMIN_CHAT_BLOCK)
+            punishmentArray.PushString("admin_chat_block");
+            
+        if (iPunishmentFlags & BITS_CALL_ADMIN_BLOCK)
+            punishmentArray.PushString("call_admin_block");
 
         this.Set("punishments", punishmentArray);
         

@@ -6,7 +6,7 @@
  * @param any		Format message
  * @noreturn
  *********************************************************/
-void PrintToRoot(bool console = false, const char[] message, any ...)
+stock void PrintToRoot(bool console = false, const char[] message, any ...)
 {
 	char sMessage[PLATFORM_MAX_PATH];
 	VFormat(sMessage, sizeof(sMessage), message, 3);
@@ -29,7 +29,7 @@ void PrintToRoot(bool console = false, const char[] message, any ...)
  * @param ...		Format message
  * @noreturn		
  *********************************************************/
-void DebugLog(const char[] message, any ...)
+stock void DebugLog(const char[] message, any ...)
 {
 	char sDate[32], sMessage[2048], sCurrentMap[64];
 	FormatTime(sDate, sizeof(sDate), "%d/%m/%Y %H:%M:%S", GetTime());
@@ -46,7 +46,7 @@ void DebugLog(const char[] message, any ...)
 	delete fLogFile;
 }
 
-void ErrorLog(const char[] message, any ...)
+stock void ErrorLog(const char[] message, any ...)
 {
 	char sDate[32], sMessage[2048], sCurrentMap[64];
 	FormatTime(sDate, sizeof(sDate), "%d/%m/%Y %H:%M:%S", GetTime());

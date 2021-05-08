@@ -13,6 +13,7 @@
 #include "gflbans-core/api.sp"
 #include "gflbans-core/events.sp"
 #include "gflbans-core/bans.sp"
+#include "gflbans-core/comms.sp"
 
 /* ===== Plugin Info ===== */
 public Plugin myinfo =
@@ -61,6 +62,9 @@ public void OnPluginStart()
     g_cvDebug = CreateConVar("gb_enable_debug_mode", "1", "Enable detailed logging of actions. 1 = Enabled, 0 = Disabled.", _, true, 0.0, true, 1.0);
     
     RegAdminCmd("sm_ban", Command_Ban, ADMFLAG_BAN, "sm_ban <#userid|name> <minutes|0> [reason]");
+    
+    AddCommandListener(ListenerCallback, "sm_gag");
+    AddCommandListener(ListenerCallback, "sm_mute");
 
     AutoExecConfig(true, "GFLBans-Core");
 }
@@ -113,7 +117,7 @@ public void OnClientPostAdminCheck(int client)
 *
 * Create punishment
 **/
-void SetupInfraction(int iClient, int iTarget, int iLength, const char[] sReason, PunishmentsList ePunishmentType)
+void SetupInfraction(int iClient, int iTarget, int iLength, const char[] sReason, int iPunishmentFlags)
 {
     CreateInfraction infraction = new CreateInfraction();
     
@@ -142,12 +146,12 @@ void SetupInfraction(int iClient, int iTarget, int iLength, const char[] sReason
     
     // Set other fields:
     infraction.SetReason(sReason);
-    infraction.SetPunishment(ePunishmentType);
+    infraction.SetPunishment(iPunishmentFlags);
     infraction.SetScope(view_as<InfractionScope>(g_cvInfractionScope.IntValue));
     infraction.SessionOnly = false;
     infraction.OnlineOnly = false;
-
-    API_CreateInfraction(iClient, iTarget, iLength, sReason, ePunishmentType, infraction);
+    
+    API_CreateInfraction(iClient, iTarget, iLength, sReason, iPunishmentFlags, infraction);
     
     // Cleanup:
     delete targetObjSimple;

@@ -184,7 +184,7 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
 /***************************************
  * Create Infractions API
 ***************************************/
-void API_CreateInfraction(int iClient, int iTarget, int iLength, const char[] sReason, PunishmentsList ePunishment, CreateInfraction infraction)
+void API_CreateInfraction(int iClient, int iTarget, int iLength, const char[] sReason, int iPunishmentFlags, CreateInfraction infraction)
 {
     char requestURL[512];
     Format(requestURL, sizeof(requestURL), "infractions/");
@@ -201,7 +201,7 @@ void API_CreateInfraction(int iClient, int iTarget, int iLength, const char[] sR
     dp.WriteCell(iTarget);
     dp.WriteCell(iLength);
     dp.WriteString(sReason);
-    dp.WriteCell(ePunishment);
+    dp.WriteCell(iPunishmentFlags);
     dp.Reset();
     
     httpClient.Post(requestURL, infraction, OnCreateInfractionsCallback, dp);
@@ -216,7 +216,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     char sReason[256];
     dp.ReadString(sReason, sizeof(sReason));
     
-    PunishmentsList ePunishment = dp.ReadCell();
+    int iPunishmentFlags = dp.ReadCell();
     
     char sAdminName[64];
     GetClientName(iClient, sAdminName, sizeof(sAdminName));
@@ -261,42 +261,91 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
         return;
     }
     
-    switch (ePunishment)
+//    switch (ePunishment)
+//    {
+//        case PUNISHMENT_VOICE_BLOCK:
+//        {
+//            
+//        }
+//        case PUNISHMENT_CHAT_BLOCK:
+//        {
+//            
+//        }
+//        case PUNISHMENT_BAN:
+//        {
+//            if (!iLength)
+//                ShowActivityEx(iClient, PREFIX, "%t", "PermBanned Player", sTargetName, sReason);
+//            else
+//                ShowActivityEx(iClient, PREFIX, "%t", "Banned Player", iTarget, iLength, sReason);
+//                
+//            LogAction(iClient, iTarget, "%t", "Ban Log", iClient, iTarget, iLength, sReason);
+//            
+//            if (IsValidClient(iTarget))
+//            {
+//                char sDisconnectReason[256], sExpirationTime[64];
+//                FormatSeconds(iLength * 60, sExpirationTime, sizeof(sExpirationTime));
+//                
+//                Format(sDisconnectReason, sizeof(sDisconnectReason), "%T\n\nADMIN: %s\nREASON: %s\nTIME LEFT: %s", "Banned Player Text", LANG_SERVER, sAdminName, sReason, iLength != 0 ? sExpirationTime : "PERMANENT");
+//                KickClient(iTarget, sDisconnectReason);
+//            }
+//        }
+//        case PUNISHMENT_ADMIN_CHAT_BLOCK:
+//        {
+//            
+//        }
+//        case PUNISHMENT_CALL_ADMIN_BLOCK:
+//        {
+//            
+//        }
+//    }
+
+    int iPunishmentFlagsTemp = iPunishmentFlags;
+    // The first check is to determine whether it is a silence:
+    if ((iPunishmentFlagsTemp & BITS_CHAT_BLOCK) && (iPunishmentFlagsTemp & BITS_VOICE_BLOCK))
     {
-        case PUNISHMENT_VOICE_BLOCK:
-        {
+        
+        // Remove bits to prevent below ifs from firing:
+        iPunishmentFlagsTemp &= ~BITS_CHAT_BLOCK;
+        iPunishmentFlagsTemp &= ~BITS_VOICE_BLOCK;
+    }
+    
+    if (iPunishmentFlagsTemp & BITS_CHAT_BLOCK)
+    {
+        
+    }
+    
+    if (iPunishmentFlagsTemp & BITS_VOICE_BLOCK)
+    {
+        
+    }
+    
+    if (iPunishmentFlagsTemp & BITS_BAN)
+    {
+        if (!iLength)
+            ShowActivityEx(iClient, PREFIX, "%t", "PermBanned Player", sTargetName, sReason);
+        else
+            ShowActivityEx(iClient, PREFIX, "%t", "Banned Player", iTarget, iLength, sReason);
             
-        }
-        case PUNISHMENT_CHAT_BLOCK:
+        LogAction(iClient, iTarget, "%t", "Ban Log", iClient, iTarget, iLength, sReason);
+        
+        if (IsValidClient(iTarget))
         {
+            char sDisconnectReason[256], sExpirationTime[64];
+            FormatSeconds(iLength * 60, sExpirationTime, sizeof(sExpirationTime));
             
+            Format(sDisconnectReason, sizeof(sDisconnectReason), "%T\n\nADMIN: %s\nREASON: %s\nTIME LEFT: %s", "Banned Player Text", LANG_SERVER, sAdminName, sReason, iLength != 0 ? sExpirationTime : "PERMANENT");
+            KickClient(iTarget, sDisconnectReason);
         }
-        case PUNISHMENT_BAN:
-        {
-            if (!iLength)
-                ShowActivityEx(iClient, PREFIX, "%t", "PermBanned Player", sTargetName, sReason);
-            else
-                ShowActivityEx(iClient, PREFIX, "%t", "Banned Player", iTarget, iLength, sReason);
-                
-            LogAction(iClient, iTarget, "%t", "Ban Log", iClient, iTarget, iLength, sReason);
-            
-            if (IsValidClient(iTarget))
-            {
-                char sDisconnectReason[256], sExpirationTime[64];
-                FormatSeconds(iLength * 60, sExpirationTime, sizeof(sExpirationTime));
-                
-                Format(sDisconnectReason, sizeof(sDisconnectReason), "%T\n\nADMIN: %s\nREASON: %s\nTIME LEFT: %s", "Banned Player Text", LANG_SERVER, sAdminName, sReason, iLength != 0 ? sExpirationTime : "PERMANENT");
-                KickClient(iTarget, sDisconnectReason);
-            }
-        }
-        case PUNISHMENT_ADMIN_CHAT_BLOCK:
-        {
-            
-        }
-        case PUNISHMENT_CALL_ADMIN_BLOCK:
-        {
-            
-        }
+    }
+    
+    if (iPunishmentFlagsTemp & BITS_ADMIN_CHAT_BLOCK)
+    {
+        
+    }
+    
+    if (iPunishmentFlagsTemp & BITS_CALL_ADMIN_BLOCK)
+    {
+        
     }
     
     char sInfractionID[64];
@@ -307,7 +356,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     Call_PushCell(iClient);
     Call_PushCell(iTarget);
     Call_PushCell(iLength);
-    Call_PushCell(ePunishment);
+    Call_PushCell(iPunishmentFlags);
     Call_PushString(sReason);
     Call_PushString(sInfractionID);
     Call_Finish();
