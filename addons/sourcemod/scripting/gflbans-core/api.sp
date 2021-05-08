@@ -305,8 +305,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     {
         
         // Remove bits to prevent below ifs from firing:
-        iPunishmentFlagsTemp &= ~BITS_CHAT_BLOCK;
-        iPunishmentFlagsTemp &= ~BITS_VOICE_BLOCK;
+        iPunishmentFlagsTemp &= ~(BITS_CHAT_BLOCK|BITS_VOICE_BLOCK);
     }
     
     if (iPunishmentFlagsTemp & BITS_CHAT_BLOCK)
