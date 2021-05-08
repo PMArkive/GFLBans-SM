@@ -22,7 +22,7 @@ public Action Command_Ban (int client, int args)
     
     if (!iBanTime && client && !(CheckCommandAccess(client, "sm_ban", ADMFLAG_UNBAN | ADMFLAG_ROOT)))
     {
-        ReplyToCommand(client, "%T", "InsufficientPermBanPerms", LANG_SERVER, PREFIX);
+        ReplyToCommand(client, "%t", "%s InsufficientPermBanPerms", PREFIX);
         return Plugin_Handled;
     }
     

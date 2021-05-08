@@ -1,5 +1,4 @@
 #include <sourcemod>
-#include <ripext>
 
 #include <gflbans>
 
@@ -28,8 +27,11 @@ public Plugin myinfo =
 /* ===== Main Code ===== */
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+    RegPluginLibrary("gflbans");
+    
     CreateNatives(); // From natives.sp
     CreateForwards(); // From forwards.sp
+    
     return APLRes_Success;
 }
 

@@ -32,6 +32,9 @@ HTTPClient httpClient;
 /* ===== Definitions ===== */
 #define PREFIX " \x01[\x0CGFLBans\x01]\x05"
 
+/* ===== Forwards ===== */
+GlobalForward g_gfOnBanAdded;
+
 /* ===== Enum Struct ===== */
 enum struct PlayerInfo
 {

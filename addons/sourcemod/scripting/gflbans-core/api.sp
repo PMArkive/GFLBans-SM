@@ -216,7 +216,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     char sReason[256];
     dp.ReadString(sReason, sizeof(sReason));
     
-    int ePunishment = dp.ReadCell();
+    PunishmentsList ePunishment = dp.ReadCell();
     
     char sAdminName[64];
     GetClientName(iClient, sAdminName, sizeof(sAdminName));
@@ -224,12 +224,30 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     char sTargetName[64];
     GetClientName(iTarget, sTargetName, sizeof(sTargetName));
     
+    delete dp;
+    
+    if (response.Status == HTTPStatus_Forbidden)
+    {
+        JSONObject APIreply = view_as<JSONObject>(response.Data);
+        char sBuffer[128];
+        APIreply.GetString("detail", sBuffer, sizeof(sBuffer));
+        
+        ErrorLog("FATAL ERROR >> Failed to POST CreateInfractions:");
+        ErrorLog("---> ENDPOINT = /infractions/");
+        ErrorLog("---> HTTP Status = %d", response.Status);
+        ErrorLog("---> Detail = %s", sBuffer);
+        
+        PrintToChat(iClient,"%s Unable to create infraction. Detail: %s", PREFIX, sBuffer);
+        return;
+    }
+    
     if (response.Status != HTTPStatus_OK)
     {
         ErrorLog("FATAL ERROR >> Failed to POST CreateInfractions:");
         ErrorLog("---> ENDPOINT = /infractions/");
         ErrorLog("---> HTTP Status = %d", response.Status);
-        PrintToChat(iClient, "%s %t", PREFIX, "API Ban Failure", response.Status);
+        
+        PrintToChat(iClient, "%s %t", PREFIX, "API Create Infraction Failure", response.Status);
         return;
     }
     
@@ -238,25 +256,59 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
         ErrorLog("FATAL ERROR >> Empty response recieved:");
         ErrorLog("---> ENDPOINT = /infractions/");
         ErrorLog("---> HTTP Status = %d", response.Status);
+        
         PrintToChat(iClient, "%s Something went wrong with the API, please contact a higher up...", PREFIX);
         return;
     }
     
-    if (!iLength)
-        ShowActivityEx(iClient, PREFIX, "%t", "PermBanned Player", sTargetName, sReason);
-    else
-        ShowActivityEx(iClient, PREFIX, "%t", "Banned Player", iTarget, iLength, sReason);
-        
-    LogAction(iClient, iTarget, "%t", "Ban Log", iClient, iTarget, iLength, sReason);
-    
-    if (IsValidClient(iTarget))
+    switch (ePunishment)
     {
-        char sDisconnectReason[256], sExpirationTime[64];
-        FormatSeconds(iLength * 60, sExpirationTime, sizeof(sExpirationTime));
-        
-        Format(sDisconnectReason, sizeof(sDisconnectReason), "%T\n\nADMIN: %s\nREASON: %s\nTIME LEFT: %s", "Banned Player Text", LANG_SERVER, sAdminName, sReason, iLength != 0 ? sExpirationTime : "PERMANENT");
-        KickClient(iTarget, sDisconnectReason);
+        case PUNISHMENT_VOICE_BLOCK:
+        {
+            
+        }
+        case PUNISHMENT_CHAT_BLOCK:
+        {
+            
+        }
+        case PUNISHMENT_BAN:
+        {
+            if (!iLength)
+                ShowActivityEx(iClient, PREFIX, "%t", "PermBanned Player", sTargetName, sReason);
+            else
+                ShowActivityEx(iClient, PREFIX, "%t", "Banned Player", iTarget, iLength, sReason);
+                
+            LogAction(iClient, iTarget, "%t", "Ban Log", iClient, iTarget, iLength, sReason);
+            
+            if (IsValidClient(iTarget))
+            {
+                char sDisconnectReason[256], sExpirationTime[64];
+                FormatSeconds(iLength * 60, sExpirationTime, sizeof(sExpirationTime));
+                
+                Format(sDisconnectReason, sizeof(sDisconnectReason), "%T\n\nADMIN: %s\nREASON: %s\nTIME LEFT: %s", "Banned Player Text", LANG_SERVER, sAdminName, sReason, iLength != 0 ? sExpirationTime : "PERMANENT");
+                KickClient(iTarget, sDisconnectReason);
+            }
+        }
+        case PUNISHMENT_ADMIN_CHAT_BLOCK:
+        {
+            
+        }
+        case PUNISHMENT_CALL_ADMIN_BLOCK:
+        {
+            
+        }
     }
     
-    delete dp;
+    char sInfractionID[64];
+    JSONObject infractionObj = view_as<JSONObject>(response.Data);
+    infractionObj.GetString("id", sInfractionID, sizeof(sInfractionID));
+    
+    Call_StartForward(g_gfOnBanAdded);
+    Call_PushCell(iClient);
+    Call_PushCell(iTarget);
+    Call_PushCell(iLength);
+    Call_PushCell(ePunishment);
+    Call_PushString(sReason);
+    Call_PushString(sInfractionID);
+    Call_Finish();
 }

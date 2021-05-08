@@ -3,6 +3,7 @@
 #endif
 #define _gflbans_included
 
+#include <ripext>
 #include <gflbans/enums>
 #include <gflbans/methodmaps>
 
@@ -23,3 +24,14 @@ public __pl_sourcebans_SetNTVOptional()
 	
 }
 #endif
+
+/*********************************************************
+ * Called when a player is punished
+ *
+ * @param iClient       The client index of the admin who is banning the client
+ * @param iTarget       The client index of the player to ban
+ * @param iLength       The time to ban the player for (in minutes, 0 = permanent)
+ * @param ePunishment   The type of punishment being applied to iTarget
+ * @param sReason       The reason to ban the player from the server
+ *********************************************************/
+forward void GFLBans_OnPlayerPunished(int iClient, int iTarget, int iLength, PunishmentsList ePunishment, const char[] sReason, const char[] sInfractionID);
