@@ -1,4 +1,5 @@
 #include <sourcemod>
+#include <basecomm>
 
 #include <gflbans>
 
@@ -65,6 +66,10 @@ public void OnPluginStart()
     
     AddCommandListener(ListenerCallback, "sm_gag");
     AddCommandListener(ListenerCallback, "sm_mute");
+    AddCommandListener(ListenerCallback, "sm_silence");
+    AddCommandListener(ListenerCallback, "sm_ungag");
+    AddCommandListener(ListenerCallback, "sm_unmute");
+    AddCommandListener(ListenerCallback, "sm_unsilence");
 
     AutoExecConfig(true, "GFLBans-Core");
 }

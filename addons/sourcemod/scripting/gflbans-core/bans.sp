@@ -1,5 +1,5 @@
 // Ban Commands go here:
-public Action Command_Ban (int client, int args)
+public Action Command_Ban(int client, int args)
 {
     if (args < 3)
     {

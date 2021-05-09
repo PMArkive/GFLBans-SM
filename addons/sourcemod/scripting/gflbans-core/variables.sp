@@ -1,9 +1,9 @@
 /* ===== Plugin Info ===== */
-#define PLUGIN_NAME "GFLBans - Core"
-#define PLUGIN_AUTHOR "Infra"
-#define PLUGIN_DESCRIPTION "GFLBans Core plugin"
-#define PLUGIN_VERSION "<VERSION>"
-#define PLUGIN_URL "https://github.com/GFLClan"
+#define PLUGIN_NAME                 "GFLBans - Core"
+#define PLUGIN_AUTHOR               "Infra"
+#define PLUGIN_DESCRIPTION          "GFLBans Core plugin"
+#define PLUGIN_VERSION              "<VERSION>"
+#define PLUGIN_URL                  "https://github.com/GFLClan"
 
 /* ===== Global Variables ===== */
 ConVar g_cvAPIUrl;
