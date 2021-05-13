@@ -64,6 +64,8 @@ public void OnPluginStart()
     
     RegAdminCmd("sm_ban", Command_Ban, ADMFLAG_BAN, "sm_ban <#userid|name> <minutes|0> [reason]");
     
+    RegAdminCmd("sm_gflbans_debug", Command_GFLBansDebug, ADMFLAG_ROOT, "sm_gflbans_debug <#userid|name>");
+    
     AddCommandListener(ListenerCallback, "sm_gag");
     AddCommandListener(ListenerCallback, "sm_mute");
     AddCommandListener(ListenerCallback, "sm_silence");
@@ -115,6 +117,56 @@ public void OnMapEnd()
 public void OnClientPostAdminCheck(int client)
 {
     API_CheckInfractions(client);
+}
+
+public void OnClientConnected(int client)
+{
+    // Clear all the details for a newly connected client:
+    g_esPlayerInfo[client].ClearAll();
+}
+
+public void OnClientDisconnect(int client)
+{
+    // Clear all the details for a disconnected client:
+    g_esPlayerInfo[client].ClearAll();
+}
+
+/**
+* Main functions
+*
+* Debug Print Variables
+**/
+public Action Command_GFLBansDebug(int client, int args)
+{
+    if (args < 1)
+    {
+        ReplyToCommand(client, "%s Usage: sm_gflbans_debug <#userid|name>", PREFIX);
+        return Plugin_Handled;
+    }
+    
+    char sBuffer[64];
+    GetCmdArg(1, sBuffer, sizeof(sBuffer));
+    
+    int iTarget = FindTarget(client, sBuffer, true, true);
+    if (iTarget == -1 || !IsValidClient(iTarget))
+        return Plugin_Handled;
+        
+    PrintToChat(client, "%s Debugging values printed to console.", PREFIX);
+    PrintToConsole(client, "[GFLBans Debug] INT: Current Time = %d", GetTime());
+    
+    PrintToConsole(client, "[GFLBans Debug] BOOL: PlayerInfo::gagIsGagged = %b", g_esPlayerInfo[iTarget].gagIsGagged);
+    PrintToConsole(client, "[GFLBans Debug] INT: PlayerInfo::gagExpiration = %d", g_esPlayerInfo[iTarget].gagExpiration);
+    PrintToConsole(client, "[GFLBans Debug] STR: PlayerInfo::gagReason = %s", g_esPlayerInfo[iTarget].gagReason);
+    PrintToConsole(client, "[GFLBans Debug] STR: PlayerInfo::gagAdminName = %s", g_esPlayerInfo[iTarget].gagAdminName);
+    PrintToConsole(client, "[GFLBans Debug] INT: PlayerInfo::gagType = %d", view_as<int>(g_esPlayerInfo[iTarget].gagType));
+
+    PrintToConsole(client, "[GFLBans Debug] BOOL: PlayerInfo::muteIsMuted = %b", g_esPlayerInfo[iTarget].muteIsMuted);
+    PrintToConsole(client, "[GFLBans Debug] INT: PlayerInfo::muteExpiration = %d", g_esPlayerInfo[iTarget].muteExpiration);
+    PrintToConsole(client, "[GFLBans Debug] STR: PlayerInfo::muteReason = %s", g_esPlayerInfo[iTarget].muteReason);
+    PrintToConsole(client, "[GFLBans Debug] STR: PlayerInfo::muteAdminName = %s", g_esPlayerInfo[iTarget].muteAdminName);
+    PrintToConsole(client, "[GFLBans Debug] INT: PlayerInfo::muteType = %d", view_as<int>(g_esPlayerInfo[iTarget].muteType));
+    
+    return Plugin_Handled;
 }
 
 /**

@@ -10,15 +10,16 @@
         "en"        "Unable to permanent ban. Insufficient permissions."
     }
 
-    "API Ban Failure"
+    "API Create Infraction Failure"
     {
         "#format"   "{1:d}"
-        "en"        "Failed to ban using API - Status Code: {1}."
+        "en"        "Failed to create infraction using API - Status Code: {1}."
     }
 
+    // <BANS> ----------------------------------------------------------------------
     "PermBanned Player"
     {
-        "#format"   "{1:s},{2:s}"
+        "#format"   "{1:N},{2:s}"
         "en"        "Permanently banned {1}. Reason: {2}"
     }
 
@@ -32,5 +33,129 @@
     {
         "#format"   "{1:L},{2:L},{3:d},{4:s}"
         "en"        "\"{1}\" banned \"{2}\" (minutes: {3}) (reason: {4})"
+    }
+
+    // <GAGS> ----------------------------------------------------------------------
+    "PermGagged Player"
+    {
+        "#format"   "{1:t},{2:s}"
+        "en"        "Permanently gagged {1}. Reason: {2}"
+    }
+
+    "Gagged Player"
+    {
+        "#format"   "{1:t},{2:d},{3:s}"
+        "en"        "Gagged {1} for {2} minutes. Reason: {3}"
+    }
+
+    "Gag Log"
+    {
+        "#format"   "{1:L},{2:L},{3:d},{4:s}"
+        "en"        "\"{1}\" gagged \"{2}\" (minutes: {3}) (reason: {4})"
+    }
+
+    "Gag Expired"
+    {
+        "en"        "Your gag has expired."
+    }
+
+    "Player Already Gagged"
+    {
+        "#format"   "{1:N}"
+        "en"        "Player \"{1}\" is already gagged!"
+    }
+
+    "Player Not Gagged"
+    {
+        "#format"   "{1:N}"
+        "en"        "Player \"{1}\" is not gagged!"
+    }
+
+    "Gagged On Connect"
+    {
+        "en"        "You have a gag ongoing, you will be gagged!"
+    }
+
+    // <MUTES> ----------------------------------------------------------------------
+    "PermMuted Player"
+    {
+        "#format"   "{1:t},{2:s}"
+        "en"        "Permanently muted {1}. Reason: {2}"
+    }
+
+    "Muted Player"
+    {
+        "#format"   "{1:t},{2:d},{3:s}"
+        "en"        "Muted {1} for {2} minutes. Reason: {3}"
+    }
+
+    "Mute Log"
+    {
+        "#format"   "{1:L},{2:L},{3:d},{4:s}"
+        "en"        "\"{1}\" Muted \"{2}\" (minutes: {3}) (reason: {4})"
+    }
+
+    "Mute Expired"
+    {
+        "en"        "Your mute has expired."
+    }
+
+    "Player Already Muted"
+    {
+        "#format"   "{1:N}"
+        "en"        "Player \"{1}\" is already muted!"
+    }
+
+    "Player Not Muted"
+    {
+        "#format"   "{1:N}"
+        "en"        "Player \"{1}\" is not muted!"
+    }
+
+    "Muted On Connect"
+    {
+        "en"        "You have a mute ongoing, you will be muted!"
+    }
+
+    // <SILENCE> ----------------------------------------------------------------------
+    "PermSilence Player"
+    {
+        "#format"   "{1:t},{2:s}"
+        "en"        "Permanently silenced {1}. Reason: {2}"
+    }
+
+    "Silenced Player"
+    {
+        "#format"   "{1:t},{2:d},{3:s}"
+        "en"        "Silenced {1} for {2} minutes. Reason: {3}"
+    }
+
+    "Silence Log"
+    {
+        "#format"   "{1:L},{2:L},{3:d},{4:s}"
+        "en"        "\"{1}\" Silenced \"{2}\" (minutes: {3}) (reason: {4})"
+    }
+
+    "Silence Expired"
+    {
+        "en"        "Your silence has expired."
+    }
+
+    "Player Already Silenced"
+    {
+        "#format"   "{1:N}"
+        "en"        "Player \"{1}\" is already silenced!"
+    }
+
+    "Player Muted Or Gagged"
+    {
+        "#format"   "{1:N}"
+        "en"        "Player \"{1}\" is already muted or gagged!"
+    }
+
+    "Player Not Silenced"
+    {
+        "#format"   "{1:N}"
+        "en"        "Player \"{1}\" is not silenced!"
     }
 }

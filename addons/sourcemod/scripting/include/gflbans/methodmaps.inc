@@ -74,10 +74,10 @@ methodmap CInfractionSummary < JSONObject
         {
             // In the current API, if the key is not present, it means the length is permanent
             if (!this.HasKey("expiration"))
-                return -1;
+                return 0;
                 
             if (this.IsNull("expiration"))
-                return -1; // -1 means permanent length.
+                return 0; // 0 means permanent length.
             	
             return this.GetInt("expiration");
         }
@@ -188,7 +188,7 @@ methodmap CheckInfractionsReply < JSONObject
 	public int GetExpiration(CInfractionSummary punishment)
 	{
 	    if (punishment == null) 
-	        return 0; // 0 means no punishment found.
+	        return -1; // -1 means no punishment found.
 	        
 	    int iExpiration = punishment.Expiration;
 	    delete punishment;

@@ -33,18 +33,65 @@ HTTPClient httpClient;
 #define PREFIX " \x01[\x0CGFLBans\x01]\x05"
 
 /* ===== Forwards ===== */
-GlobalForward g_gfOnBanAdded;
+GlobalForward g_gfOnPunishAdded;
 
 /* ===== Enum Struct ===== */
 enum struct PlayerInfo
 {
-    int Gag_Expiration;
-    bool Gag_IsGagged;
-    char Gag_Reason[256];
-    char Gag_AdminName[256];
+    bool gagIsGagged;
+    int gagExpiration;
+    char gagReason[256];
+    char gagAdminName[256];
+    PunishmentType gagType;
     
-    int Mute_Expiration;
-    bool Mute_IsMuted;
-    char Mute_Reason[256];
-    char Mute_AdminName[256];
+    bool muteIsMuted;
+    int muteExpiration;
+    char muteReason[256];
+    char muteAdminName[256];
+    PunishmentType muteType;
+    
+    Handle gagTimer;
+    Handle muteTimer;
+    
+    void ClearAll()
+    {
+        this.gagIsGagged = false;
+        this.gagExpiration = 0;
+        this.gagReason[0] = '\0';
+        this.gagAdminName[0] = '\0';
+        this.gagType = P_NOT;
+        
+        this.muteExpiration = 0;
+        this.muteIsMuted = false;
+        this.muteReason[0] = '\0';
+        this.muteAdminName[0] = '\0';
+        this.muteType = P_NOT;
+        
+        delete this.gagTimer;
+        delete this.muteTimer;
+    }
+    
+    void ClearGag()
+    {
+        this.gagIsGagged = false;
+        this.gagExpiration = 0;
+        this.gagReason[0] = '\0';
+        this.gagAdminName[0] = '\0';
+        this.gagType = P_NOT;
+        
+        delete this.gagTimer;
+    }
+    
+    void ClearMute()
+    {
+        this.muteIsMuted = false;
+        this.muteExpiration = 0;
+        this.muteReason[0] = '\0';
+        this.muteAdminName[0] = '\0';
+        this.muteType = P_NOT;
+        
+        delete this.muteTimer;
+    }
 }
+
+PlayerInfo g_esPlayerInfo[MAXPLAYERS+1];

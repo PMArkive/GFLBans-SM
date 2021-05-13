@@ -146,8 +146,8 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
     {
         int iClientExpiration = infractionsReply.GetExpiration(view_as<CInfractionSummary>(infractionsReply.Ban));
         
-        // Additional check to determine if the client has a ban on record, -1 equals a permanent ban:
-        if (iClientExpiration > GetTime() || iClientExpiration == -1)
+        // Additional check to determine if the client has a ban on record, 0 equals a permanent ban:
+        if (iClientExpiration > GetTime() || iClientExpiration == 0)
         {
             char sReason[256], sAdminName[256], sExpirationTime[64], sDisconnectReason[256];
             
@@ -155,7 +155,7 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
             infractionsReply.GetAdminName(view_as<CInfractionSummary>(infractionsReply.Ban), sAdminName, sizeof(sAdminName));
             
             FormatSeconds(iClientExpiration - GetTime(), sExpirationTime, sizeof(sExpirationTime));
-            Format(sDisconnectReason, sizeof(sDisconnectReason), "%T\n\nADMIN: %s\nREASON: %s\nTIME LEFT: %s", "Banned Player Text", LANG_SERVER, sAdminName, sReason, iClientExpiration != -1 ? sExpirationTime : "PERMANENT");
+            Format(sDisconnectReason, sizeof(sDisconnectReason), "%T\n\nADMIN: %s\nREASON: %s\nTIME LEFT: %s", "Banned Player Text", LANG_SERVER, sAdminName, sReason, iClientExpiration != 0 ? sExpirationTime : "PERMANENT");
             
             if (g_cvDebug.BoolValue)
                 DebugLog("[GFLBans] Rejected client %N due to a ban: %s", client, sDisconnectReason);
@@ -167,13 +167,35 @@ void OnHeartbeatPulse(HTTPResponse response, any value) // Callback for heartbea
     // Voice Blocks
     if (!infractionsReply.IsPunishmentNull(view_as<CInfractionSummary>(infractionsReply.VoiceBlock)))
     {
+        int iClientExpiration = infractionsReply.GetExpiration(view_as<CInfractionSummary>(infractionsReply.VoiceBlock));
         
+        if (iClientExpiration > GetTime() || iClientExpiration == 0)
+        {
+            char sReason[256], sAdminName[256];
+            
+            infractionsReply.GetReason(view_as<CInfractionSummary>(infractionsReply.VoiceBlock), sReason, sizeof(sReason));
+            infractionsReply.GetAdminName(view_as<CInfractionSummary>(infractionsReply.VoiceBlock), sAdminName, sizeof(sAdminName));
+            PerformMute(client, iClientExpiration != 0 ? iClientExpiration - GetTime() : 0, true, sReason, sAdminName);
+            
+            PrintToChat(client, "%s %t", PREFIX, "Muted On Connect");
+        }
     }
     
     // Chat Blocks
     if (!infractionsReply.IsPunishmentNull(view_as<CInfractionSummary>(infractionsReply.ChatBlock)))
     {
+        int iClientExpiration = infractionsReply.GetExpiration(view_as<CInfractionSummary>(infractionsReply.ChatBlock));
         
+        if (iClientExpiration > GetTime() || iClientExpiration == 0)
+        {
+            char sReason[256], sAdminName[256];
+            
+            infractionsReply.GetReason(view_as<CInfractionSummary>(infractionsReply.VoiceBlock), sReason, sizeof(sReason));
+            infractionsReply.GetAdminName(view_as<CInfractionSummary>(infractionsReply.VoiceBlock), sAdminName, sizeof(sAdminName));
+            PerformGag(client, iClientExpiration != 0 ? iClientExpiration - GetTime() : 0, true, sReason, sAdminName);
+            
+            PrintToChat(client, "%s %t", PREFIX, "Gagged On Connect");
+        }
     } 
     
     // Cleanup.
@@ -237,7 +259,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
         ErrorLog("---> HTTP Status = %d", response.Status);
         ErrorLog("---> Detail = %s", sBuffer);
         
-        PrintToChat(iClient,"%s Unable to create infraction. Detail: %s", PREFIX, sBuffer);
+        ReplyToCommand(iClient,"%s Unable to create infraction. Detail: %s", PREFIX, sBuffer);
         return;
     }
     
@@ -247,7 +269,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
         ErrorLog("---> ENDPOINT = /infractions/");
         ErrorLog("---> HTTP Status = %d", response.Status);
         
-        PrintToChat(iClient, "%s %t", PREFIX, "API Create Infraction Failure", response.Status);
+        ReplyToCommand(iClient, "%s %t", PREFIX, "API Create Infraction Failure", response.Status);
         return;
     }
     
@@ -257,7 +279,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
         ErrorLog("---> ENDPOINT = /infractions/");
         ErrorLog("---> HTTP Status = %d", response.Status);
         
-        PrintToChat(iClient, "%s Something went wrong with the API, please contact a higher up...", PREFIX);
+        ReplyToCommand(iClient, "%s Something went wrong with the API, please contact a higher up...", PREFIX);
         return;
     }
     
@@ -303,6 +325,8 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     // The first check is to determine whether it is a silence:
     if ((iPunishmentFlagsTemp & BITS_CHAT_BLOCK) && (iPunishmentFlagsTemp & BITS_VOICE_BLOCK))
     {
+        PerformMute(iTarget, iLength, _, sReason, sAdminName);
+        PerformGag(iTarget, iLength, _, sReason, sAdminName);
         
         // Remove bits to prevent below ifs from firing:
         iPunishmentFlagsTemp &= ~(BITS_CHAT_BLOCK|BITS_VOICE_BLOCK);
@@ -310,18 +334,18 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     
     if (iPunishmentFlagsTemp & BITS_CHAT_BLOCK)
     {
-        
+        PerformGag(iTarget, iLength, _, sReason, sAdminName);
     }
     
     if (iPunishmentFlagsTemp & BITS_VOICE_BLOCK)
     {
-        
+        PerformMute(iTarget, iLength, _, sReason, sAdminName);
     }
     
     if (iPunishmentFlagsTemp & BITS_BAN)
     {
         if (!iLength)
-            ShowActivityEx(iClient, PREFIX, "%t", "PermBanned Player", sTargetName, sReason);
+            ShowActivityEx(iClient, PREFIX, "%t", "PermBanned Player", iTarget, sReason);
         else
             ShowActivityEx(iClient, PREFIX, "%t", "Banned Player", iTarget, iLength, sReason);
             
@@ -351,7 +375,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     JSONObject infractionObj = view_as<JSONObject>(response.Data);
     infractionObj.GetString("id", sInfractionID, sizeof(sInfractionID));
     
-    Call_StartForward(g_gfOnBanAdded);
+    Call_StartForward(g_gfOnPunishAdded);
     Call_PushCell(iClient);
     Call_PushCell(iTarget);
     Call_PushCell(iLength);

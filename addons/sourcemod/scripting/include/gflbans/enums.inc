@@ -18,3 +18,11 @@ enum PunishmentsTemplate
     P_ADMIN_CHAT_BLOCK    = 8,
     P_CALL_ADMIN_BLOCK    = 16
 }
+
+enum PunishmentType
+{
+    P_NOT = 0,          // Not muted/gagged
+    P_SESS,             // Session mute/gag
+    P_TIMED,            // Timed mute/gag
+    P_PERM              // Permanent mute/gag
+}
