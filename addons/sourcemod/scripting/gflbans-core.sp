@@ -174,7 +174,7 @@ public Action Command_GFLBansDebug(int client, int args)
 *
 * Create punishment
 **/
-void SetupInfraction(int iClient, int iTarget, int iLength, const char[] sReason, int iPunishmentFlags)
+void SetupInfraction(int iClient = 0, int iTarget, int iLength, const char[] sReason, int iPunishmentFlags)
 {
     CreateInfraction infraction = new CreateInfraction();
     
@@ -213,4 +213,44 @@ void SetupInfraction(int iClient, int iTarget, int iLength, const char[] sReason
     // Cleanup:
     delete targetObjSimple;
     delete infraction;
+}
+
+/**
+* Main functions
+*
+* Remove Infraction
+**/
+void SetupRemoval(int iClient, int iTarget, int iPunishmentFlags, const char[] sReason)
+{
+    RemoveInfractionsOfPlayer removeInfraction = new RemoveInfractionsOfPlayer();
+    
+    // Set player:
+    PlayerObjNoIp targetObjNoIp = new PlayerObjNoIp();
+    targetObjNoIp.SetService("steam");
+    targetObjNoIp.SetID64(iTarget);
+    
+    removeInfraction.SetPlayer(targetObjNoIp);
+    
+    // Set admin field if it's not console:
+    if (iClient)
+    {
+        PlayerObjNoIp adminObjNoIp = new PlayerObjNoIp();
+        adminObjNoIp.SetService("steam");
+        adminObjNoIp.SetID64(iClient);
+        
+        removeInfraction.SetAdmin(adminObjNoIp);
+        
+        delete adminObjNoIp;
+    }
+    
+    // Set other fields:
+    removeInfraction.SetReason(sReason);
+    removeInfraction.SetIncludeOtherServers = true;
+    removeInfraction.SetRestrictTypes(iPunishmentFlags);
+    
+    API_RemoveInfraction(iClient, iTarget, sReason, iPunishmentFlags, removeInfraction);
+    
+    // Cleanup:
+    delete targetObjNoIp;
+    delete removeInfraction;
 }

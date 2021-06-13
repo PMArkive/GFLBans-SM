@@ -16,6 +16,12 @@
         "en"        "Failed to create infraction using API - Status Code: {1}."
     }
 
+    "API Remove Infraction Failure"
+    {
+        "#format"   "{1:d}"
+        "en"        "Failed to remove infraction using API - Status Code: {1}"
+    }
+
     // <BANS> ----------------------------------------------------------------------
     "PermBanned Player"
     {
@@ -46,6 +52,18 @@
     {
         "#format"   "{1:t},{2:d},{3:s}"
         "en"        "Gagged {1} for {2} minutes. Reason: {3}"
+    }
+
+    "Temp Gagged Player"
+    {
+        "#format"   "{1:t},{2:s}"
+        "en"        "Temporarily gagged {1}. Reason: {2}"
+    }
+
+    "UnGagged Player"
+    {
+        "#format"   "{1:t},{2:s}"
+        "en"        "Removed a gag from {1}. Reason: {2}"
     }
 
     "Gag Log"
@@ -89,6 +107,18 @@
         "en"        "Muted {1} for {2} minutes. Reason: {3}"
     }
 
+    "Temp Muted Player"
+    {
+        "#format"   "{1:t},{2:s}"
+        "en"        "Temporarily muted {1}. Reason: {2}"
+    }
+
+    "UnMuted Player"
+    {
+        "#format"   "{1:t},{2:s}"
+        "en"        "Removed a mute from {1}. Reason: {2}"
+    }
+
     "Mute Log"
     {
         "#format"   "{1:L},{2:L},{3:d},{4:s}"
@@ -118,7 +148,7 @@
     }
 
     // <SILENCE> ----------------------------------------------------------------------
-    "PermSilence Player"
+    "PermSilenced Player"
     {
         "#format"   "{1:t},{2:s}"
         "en"        "Permanently silenced {1}. Reason: {2}"
@@ -128,6 +158,18 @@
     {
         "#format"   "{1:t},{2:d},{3:s}"
         "en"        "Silenced {1} for {2} minutes. Reason: {3}"
+    }
+
+    "Temp Silenced Player"
+    {
+        "#format"   "{1:t},{2:s}"
+        "en"        "Temporarily silenced {1}. Reason: {2}"
+    }
+
+    "UnSilenced Player"
+    {
+        "#format"   "{1:t},{2:s}"
+        "en"        "Removed a silence from {1}. Reason: {2}"
     }
 
     "Silence Log"

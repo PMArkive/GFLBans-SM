@@ -241,7 +241,10 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     int iPunishmentFlags = dp.ReadCell();
     
     char sAdminName[64];
-    GetClientName(iClient, sAdminName, sizeof(sAdminName));
+    if (iClient)
+        GetClientName(iClient, sAdminName, sizeof(sAdminName));
+    else
+        FormatEx(sAdminName, sizeof(sAdminName), "CONSOLE");
     
     char sTargetName[64];
     GetClientName(iTarget, sTargetName, sizeof(sTargetName));
@@ -259,7 +262,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
         ErrorLog("---> HTTP Status = %d", response.Status);
         ErrorLog("---> Detail = %s", sBuffer);
         
-        ReplyToCommand(iClient,"%s Unable to create infraction. Detail: %s", PREFIX, sBuffer);
+        PrintToChat(iClient, "%s Unable to create infraction. Detail: %s", PREFIX, sBuffer);
         return;
     }
     
@@ -345,9 +348,9 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     if (iPunishmentFlagsTemp & BITS_BAN)
     {
         if (!iLength)
-            ShowActivityEx(iClient, PREFIX, "%t", "PermBanned Player", iTarget, sReason);
+            ShowActivity2(iClient, PREFIX, "%t", "PermBanned Player", iTarget, sReason);
         else
-            ShowActivityEx(iClient, PREFIX, "%t", "Banned Player", iTarget, iLength, sReason);
+            ShowActivity2(iClient, PREFIX, "%t", "Banned Player", iTarget, iLength, sReason);
             
         LogAction(iClient, iTarget, "%t", "Ban Log", iClient, iTarget, iLength, sReason);
         
@@ -382,5 +385,95 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     Call_PushCell(iPunishmentFlags);
     Call_PushString(sReason);
     Call_PushString(sInfractionID);
+    Call_Finish();
+}
+
+/***************************************
+ * Remove Infractions API
+***************************************/
+void API_RemoveInfraction(int iClient, int iTarget, const char[] sReason, int iPunishmentFlags, RemoveInfractionsOfPlayer removeInfraction)
+{
+    char requestURL[512];
+    Format(requestURL, sizeof(requestURL), "infractions/remove");
+    
+    if (g_cvDebug.BoolValue)
+    {
+        char sData[2048];
+        removeInfraction.ToString(sData, sizeof(sData), JSON_INDENT(4));
+        DebugLog("API_RemoveInfraction %s", sData);
+    }
+    
+    DataPack dp = new DataPack();
+    dp.WriteCell(iClient);
+    dp.WriteCell(iTarget);
+    dp.WriteString(sReason);
+    dp.WriteCell(iPunishmentFlags);
+    dp.Reset();
+    
+    httpClient.Post(requestURL, removeInfraction, OnRemoveInfractionsCallback, dp);
+}
+
+void OnRemoveInfractionsCallback(HTTPResponse response, DataPack dp, const char[] sError)
+{
+    int iClient = dp.ReadCell();
+    int iTarget = dp.ReadCell();
+    
+    char sReason[256];
+    dp.ReadString(sReason, sizeof(sReason));
+    
+    int iPunishmentFlags = dp.ReadCell();
+    
+    char sAdminName[64];
+    if (iClient)
+        GetClientName(iClient, sAdminName, sizeof(sAdminName));
+    else
+        FormatEx(sAdminName, sizeof(sAdminName), "CONSOLE");
+    
+    char sTargetName[64];
+    GetClientName(iTarget, sTargetName, sizeof(sTargetName));
+    
+    delete dp;
+    
+    if (response.Status != HTTPStatus_OK)
+    {
+        ErrorLog("FATAL ERROR >> Failed to POST RemoveInfractions:");
+        ErrorLog("---> ENDPOINT = /infractions/remove");
+        ErrorLog("---> HTTP Status = %d", response.Status);
+        
+        ReplyToCommand(iClient, "%s %d", PREFIX, response.Status);
+        return;
+    }
+    
+    if (response.Data == null)
+    {
+        ErrorLog("FATAL ERROR >> Empty response recieved:");
+        ErrorLog("---> ENDPOINT = /infractions/remove");
+        ErrorLog("---> HTTP Status = %d", response.Status);
+        
+        ReplyToCommand(iClient, "%s Something went wrong with the API, please contact a higher up...", PREFIX);
+        return;
+    }
+    
+    int iPunishmentFlagsTemp = iPunishmentFlags;
+    if ((iPunishmentFlagsTemp & BITS_CHAT_BLOCK) && (iPunishmentFlagsTemp & BITS_VOICE_BLOCK))
+    {
+        PerformUnmute(iTarget);
+        PerformUngag(iTarget);
+        
+        // Remove bits to prevent below ifs from firing:
+        iPunishmentFlagsTemp &= ~(BITS_CHAT_BLOCK|BITS_VOICE_BLOCK);
+    }
+    
+    if (iPunishmentFlagsTemp & BITS_CHAT_BLOCK)
+        PerformUngag(iTarget);
+    
+    if (iPunishmentFlagsTemp & BITS_VOICE_BLOCK)
+        PerformUnmute(iTarget);
+    
+    Call_StartForward(g_gfOnPunishRemoved);
+    Call_PushCell(iClient);
+    Call_PushCell(iTarget);
+    Call_PushCell(iPunishmentFlags);
+    Call_PushString(sReason);
     Call_Finish();
 }

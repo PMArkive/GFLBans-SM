@@ -391,3 +391,61 @@ methodmap InfractionStatisticReply < JSONObject
         }
     }
 }
+
+methodmap RemoveInfractionsOfPlayer < JSONObject
+{
+    public RemoveInfractionsOfPlayer() { return view_as<RemoveInfractionsOfPlayer>(new JSONObject()); }
+    
+    public void SetPlayer(PlayerObjNoIp playerObjNoIp)
+    {
+        this.Set("player", playerObjNoIp);
+    }
+    
+    public void SetReason(const char[] buffer)
+    {
+        this.SetString("remove_reason", buffer);
+    }
+    
+    // We are going to use Initiator -> gs_admin in our admin field:
+    public void SetAdmin(PlayerObjNoIp playerObjNoIp)
+    {
+        JSONObject gsAdmin = new JSONObject();
+        gsAdmin.Set("gs_admin", playerObjNoIp);
+        
+        this.Set("admin", gsAdmin);
+        
+        delete gsAdmin;
+    }
+    
+    property bool SetIncludeOtherServers
+    {
+        public set(bool includeOtherServers)
+        {
+            this.SetBool("include_other_servers", includeOtherServers);
+        }
+    }
+    
+    public void SetRestrictTypes(int iPunishmentFlags)
+    {
+        JSONArray restrictArray = new JSONArray();
+        
+        if (iPunishmentFlags & BITS_VOICE_BLOCK)
+            restrictArray.PushString("voice_block");
+            
+        if (iPunishmentFlags & BITS_CHAT_BLOCK)
+            restrictArray.PushString("chat_block");
+        
+        if (iPunishmentFlags & BITS_BAN)
+            restrictArray.PushString("ban");
+            
+        if (iPunishmentFlags & BITS_ADMIN_CHAT_BLOCK)
+            restrictArray.PushString("admin_chat_block");
+            
+        if (iPunishmentFlags & BITS_CALL_ADMIN_BLOCK)
+            restrictArray.PushString("call_admin_block");
+
+        this.Set("restrict_types", restrictArray);
+        
+        delete restrictArray;
+    }
+}

@@ -30,10 +30,11 @@ Handle hbTimer;
 HTTPClient httpClient;
 
 /* ===== Definitions ===== */
-#define PREFIX " \x01[\x0CGFLBans\x01]\x05"
+#define PREFIX " \x01[\x0CGFLBans\x01]\x05 "
 
 /* ===== Forwards ===== */
 GlobalForward g_gfOnPunishAdded;
+GlobalForward g_gfOnPunishRemoved;
 
 /* ===== Enum Struct ===== */
 enum struct PlayerInfo

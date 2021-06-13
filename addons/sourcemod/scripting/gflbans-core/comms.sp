@@ -84,6 +84,9 @@ public Action ListenerCallback(int client, const char[] command, int args)
     {
         int iTarget = iTargetList[i];
         
+        if (!IsValidClient(iTarget))
+            continue;
+        
         switch (iPunishmentType)
         {
             case P_CHAT:
@@ -94,9 +97,9 @@ public Action ListenerCallback(int client, const char[] command, int args)
                 else if (!g_esPlayerInfo[iTarget].gagIsGagged && bRemovingInfraction)
                     ReplyToCommand(client, "%s %t", PREFIX, "Player Not Gagged", iTarget);
                 else if (bRemovingInfraction)
-                    PrintToChatAll("%s - %N - %s", command, iTargetList[i], sReason);
+                    ProcessUnblock(client, iTarget, view_as<int>(iPunishmentType), sReason, iTargetCount);
                 else
-                    SetupInfraction(client, iTarget, iPunishmentLength, sReason, view_as<int>(iPunishmentType));
+                    ProcessBlock(client, iTarget, iPunishmentLength, view_as<int>(iPunishmentType), sReason);
             }
             case P_VOICE:
             {
@@ -106,9 +109,9 @@ public Action ListenerCallback(int client, const char[] command, int args)
                 else if (!g_esPlayerInfo[iTarget].muteIsMuted && bRemovingInfraction)
                     ReplyToCommand(client, "%s %t", PREFIX, "Player Not Muted", iTarget);
                 else if (bRemovingInfraction)
-                    PrintToChatAll("%s - %N - %s", command, iTargetList[i], sReason);
+                    ProcessUnblock(client, iTarget, view_as<int>(iPunishmentType), sReason, iTargetCount);
                 else
-                    SetupInfraction(client, iTarget, iPunishmentLength, sReason, view_as<int>(iPunishmentType));
+                    ProcessBlock(client, iTarget, iPunishmentLength, view_as<int>(iPunishmentType), sReason);
             }
             case P_SILENCE:
             {
@@ -116,7 +119,7 @@ public Action ListenerCallback(int client, const char[] command, int args)
                 if (!bRemovingInfraction)
                 {
                     if (!g_esPlayerInfo[iTarget].muteIsMuted && !g_esPlayerInfo[iTarget].gagIsGagged)
-                        SetupInfraction(client, iTarget, iPunishmentLength, sReason, view_as<int>(iPunishmentType));
+                        ProcessBlock(client, iTarget, iPunishmentLength, view_as<int>(iPunishmentType), sReason);
                     else if (g_esPlayerInfo[iTarget].muteIsMuted && g_esPlayerInfo[iTarget].gagIsGagged)
                         ReplyToCommand(client, "%s %t", PREFIX, "Player Already Silenced", iTarget);
                     else
@@ -125,26 +128,124 @@ public Action ListenerCallback(int client, const char[] command, int args)
                 else
                 {
                     if (g_esPlayerInfo[iTarget].muteIsMuted && g_esPlayerInfo[iTarget].gagIsGagged)
-                        PrintToChatAll("%s - %N - %s", command, iTarget, sReason);
+                        ProcessUnblock(client, iTarget, view_as<int>(iPunishmentType), sReason, iTargetCount);
                     else if (!g_esPlayerInfo[iTarget].muteIsMuted && !g_esPlayerInfo[iTarget].gagIsGagged)
                         ReplyToCommand(client, "%s %t", PREFIX, "Player Not Silenced", iTarget);
                     else
-                        ReplyToCommand(client, "%s %t", PREFIX, "Player Not Silenced", iTarget);
+                        ReplyToCommand(client, "%s %t", PREFIX, "Player Not Silenced", iTarget);  // This should be another message
                 }
             }
         }
     }
     
     // This below is for printing the activity to chat:
+    // Damn this doesn't look nice, improve it maybe?
     if (bTNisML)
     {
         // Print out only the multi-target phrase:
+        
+        char sActionBuffer[256];
+        switch (iPunishmentType)
+        {
+            case P_CHAT:
+            {
+                if (!bRemovingInfraction)
+                {
+                    if (iPunishmentLength == 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "PermGagged Player", sTargetBuffer, sReason);
+                    else if (iPunishmentLength > 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Gagged Player", sTargetBuffer, iPunishmentLength, sReason);
+                    else
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Temp Gagged Player", sTargetBuffer, sReason);
+                }
+                else
+                    FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "UnGagged Player", sTargetBuffer, sReason);
+            }
+            case P_VOICE:
+            {
+                if (!bRemovingInfraction)
+                {
+                    if (iPunishmentLength == 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "PermMuted Player", sTargetBuffer, sReason);
+                    else if (iPunishmentLength > 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Muted Player", sTargetBuffer, iPunishmentLength, sReason);
+                    else
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Temp Muted Player", sTargetBuffer, sReason);
+                }
+                else
+                    FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "UnMuted Player", sTargetBuffer, sReason);
+            }
+            case P_SILENCE:
+            {
+                if (!bRemovingInfraction)
+                {
+                    if (iPunishmentLength == 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "PermSilenced Player", sTargetBuffer, sReason);
+                    else if (iPunishmentLength > 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Silenced Player", sTargetBuffer, iPunishmentLength, sReason);
+                    else
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Temp Silenced Player", sTargetBuffer, sReason);
+                }
+                else
+                    FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "UnSilenced Player", sTargetBuffer, sReason);
+            }
+        }
+        
+        ShowActivity2(client, PREFIX, " %s", sActionBuffer);
         
     }
     else
     {
         // Print out the target that got punished:
         
+        char sActionBuffer[256];
+        switch (iPunishmentType)
+        {
+            case P_CHAT:
+            {
+                if (!bRemovingInfraction)
+                {
+                    if (iPunishmentLength == 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "PermGagged Player", "_s", sTargetBuffer, sReason);
+                    else if (iPunishmentLength > 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Gagged Player", "_s", sTargetBuffer, iPunishmentLength, sReason);
+                    else
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Temp Gagged Player", "_s", sTargetBuffer, sReason);
+                }
+                else
+                    FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "UnGagged Player", "_s", sTargetBuffer, sReason);
+            }
+            case P_VOICE:
+            {
+                if (!bRemovingInfraction)
+                {
+                    if (iPunishmentLength == 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "PermMuted Player", "_s", sTargetBuffer, sReason);
+                    else if (iPunishmentLength > 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Muted Player", "_s", sTargetBuffer, iPunishmentLength, sReason);
+                    else
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Temp Muted Player", "_s", sTargetBuffer, sReason);
+                }
+                else
+                    FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "UnMuted Player", "_s", sTargetBuffer, sReason);
+            }
+            case P_SILENCE:
+            {
+                if (!bRemovingInfraction)
+                {
+                    if (iPunishmentLength == 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "PermSilenced Player", "_s", sTargetBuffer, sReason);
+                    else if (iPunishmentLength > 0)
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Silenced Player", "_s", sTargetBuffer, iPunishmentLength, sReason);
+                    else
+                        FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "Temp Silenced Player", "_s", sTargetBuffer, sReason);
+                }
+                else
+                    FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "UnSilenced Player", "_s", sTargetBuffer, sReason);
+            }
+        }
+        
+        ShowActivity2(client, PREFIX, " %s", sActionBuffer);
     }
 
     return Plugin_Stop;
@@ -153,12 +254,12 @@ public Action ListenerCallback(int client, const char[] command, int args)
 /***************************************
  * Gags
 ***************************************/
-stock void PerformGag(int iTarget, int iLength, bool bInSeconds = false, const char[] sReason, const char[] sAdminName = "CONSOLE")
+stock void PerformGag(int iTarget, int iLength = -1, bool bInSeconds = false, const char[] sReason, const char[] sAdminName = "CONSOLE")
 {
     MarkClientAsGagged(iTarget, bInSeconds ? iLength : iLength * 60, sReason, sAdminName);
     BaseComm_SetClientGag(iTarget, true);
     
-    if (iLength)
+    if (iLength > 0)
     {
         DataPack dp;
         if (bInSeconds)
@@ -191,7 +292,7 @@ stock void MarkClientAsGagged(int iTarget, int iLength, const char[] sReason, co
 {
     g_esPlayerInfo[iTarget].gagIsGagged = true;
     
-    if (iLength)
+    if (iLength > 0)
     {
         g_esPlayerInfo[iTarget].gagExpiration = GetTime() + iLength;
         g_esPlayerInfo[iTarget].gagType = P_TIMED;
@@ -209,15 +310,21 @@ stock void MarkClientAsGagged(int iTarget, int iLength, const char[] sReason, co
     
 }
 
+stock void PerformUngag(int iTarget)
+{
+    g_esPlayerInfo[iTarget].ClearGag();
+    BaseComm_SetClientGag(iTarget, false);
+}
+
 /***************************************
  * Mutes
 ***************************************/
-stock void PerformMute(int iTarget, int iLength, bool bInSeconds = false, const char[] sReason, const char[] sAdminName = "CONSOLE")
+stock void PerformMute(int iTarget, int iLength = -1, bool bInSeconds = false, const char[] sReason, const char[] sAdminName = "CONSOLE")
 {
     MarkClientAsMuted(iTarget, bInSeconds ? iLength : iLength * 60, sReason, sAdminName);
     BaseComm_SetClientMute(iTarget, true);
     
-    if (iLength)
+    if (iLength > 0)
     {
         DataPack dp;
         if (bInSeconds)
@@ -266,4 +373,122 @@ stock void MarkClientAsMuted(int iTarget, int iLength, const char[] sReason, con
         
     strcopy(g_esPlayerInfo[iTarget].muteReason, sizeof(PlayerInfo::muteReason), sReason);
     strcopy(g_esPlayerInfo[iTarget].muteAdminName, sizeof(PlayerInfo::muteAdminName), sAdminName);
+}
+
+stock void PerformUnmute(int iTarget)
+{
+    g_esPlayerInfo[iTarget].ClearMute();
+    BaseComm_SetClientMute(iTarget, false);
+}
+
+/***************************************
+ * Setting up of comms
+***************************************/
+stock void ProcessBlock(int iClient, int iTarget, int iLength, int iPunishmentType, const char[] sReason)
+{
+    if (!IsValidClient(iTarget))
+        return;
+        
+    char sAdminName[256];
+    if (iClient)
+        GetClientName(iClient, sAdminName, sizeof(sAdminName));
+    else
+        FormatEx(sAdminName, sizeof(sAdminName), "CONSOLE");
+        
+    switch (iPunishmentType)
+    {
+        case P_CHAT:
+        {
+            if (iLength < 0)
+            {
+                PerformGag(iTarget, _, _, sReason, sAdminName);
+                return;
+            }
+        }
+        case P_VOICE:
+        {
+            if (iLength < 0)
+            {
+                PerformMute(iTarget, _, _, sReason, sAdminName);
+                return;
+            }
+        }
+        case P_SILENCE:
+        {
+            if (iLength < 0)
+            {
+                PerformGag(iTarget, _, _, sReason, sAdminName);
+                PerformMute(iTarget, _, _, sReason, sAdminName);
+                return;
+            }
+        }
+    }
+    
+    SetupInfraction(iClient, iTarget, iLength, sReason, iPunishmentType);
+}
+
+/***************************************
+ * Removal of comms
+***************************************/
+stock void ProcessUnblock(int iClient, int iTarget, int iPunishmentType, const char[] sReason, int iTargetCount)
+{
+    if (!IsValidClient(iTarget))
+        return;
+        
+    if (iTargetCount > 1)
+    { 
+        switch (iPunishmentType)
+        {
+            case P_CHAT:
+            {
+                if (g_esPlayerInfo[iTarget].gagType == P_TIMED || g_esPlayerInfo[iTarget].gagType == P_PERM)
+                    return;
+            }
+            case P_VOICE:
+            {
+                if (g_esPlayerInfo[iTarget].muteType == P_TIMED || g_esPlayerInfo[iTarget].muteType == P_PERM)
+                    return;
+            }
+            case P_SILENCE:
+            {
+                if ((g_esPlayerInfo[iTarget].gagType == P_TIMED || g_esPlayerInfo[iTarget].gagType == P_PERM) && (g_esPlayerInfo[iTarget].muteType == P_TIMED || g_esPlayerInfo[iTarget].muteType == P_PERM))
+                    return;
+            }
+        }
+        
+        ProcessUnblock(iClient, iTarget, iPunishmentType, sReason, 1);
+    }
+    else
+    {
+        switch (iPunishmentType)
+        {
+            case P_CHAT:
+            {
+                if (g_esPlayerInfo[iTarget].gagType == P_SESS)
+                {
+                    PerformUngag(iTarget);
+                    return;
+                }
+            }
+            case P_VOICE:
+            {
+                if (g_esPlayerInfo[iTarget].muteType == P_SESS)
+                {
+                    PerformUnmute(iTarget);
+                    return;                    
+                }
+            }
+            case P_SILENCE:
+            {
+                if (g_esPlayerInfo[iTarget].muteType == P_SESS && g_esPlayerInfo[iTarget].gagType == P_SESS)
+                {
+                    PerformUnmute(iTarget);
+                    PerformUngag(iTarget);
+                    return;
+                }
+            }   
+        }
+        
+        SetupRemoval(iClient, iTarget, iPunishmentType, sReason);
+    }
 }
