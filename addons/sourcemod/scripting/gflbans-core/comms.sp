@@ -80,6 +80,7 @@ public Action ListenerCallback(int client, const char[] command, int args)
     }
     
     // Looping through iTargetList and applying punishment where necessary:
+    bool bPlayerFound = false;
     for (int i = 0; i < iTargetCount; i++)
     {
         int iTarget = iTargetList[i];
@@ -96,10 +97,14 @@ public Action ListenerCallback(int client, const char[] command, int args)
                     ReplyToCommand(client, "%s %t", PREFIX, "Player Already Gagged", iTarget);
                 else if (!g_esPlayerInfo[iTarget].gagIsGagged && bRemovingInfraction)
                     ReplyToCommand(client, "%s %t", PREFIX, "Player Not Gagged", iTarget);
-                else if (bRemovingInfraction)
+                else if (bRemovingInfraction) {
                     ProcessUnblock(client, iTarget, view_as<int>(iPunishmentType), sReason, iTargetCount);
-                else
+                    bPlayerFound = true;
+                }
+                else {
                     ProcessBlock(client, iTarget, iPunishmentLength, view_as<int>(iPunishmentType), sReason);
+                    bPlayerFound = true;
+                }
             }
             case P_VOICE:
             {
@@ -108,18 +113,24 @@ public Action ListenerCallback(int client, const char[] command, int args)
                     ReplyToCommand(client, "%s %t", PREFIX, "Player Already Muted", iTarget);
                 else if (!g_esPlayerInfo[iTarget].muteIsMuted && bRemovingInfraction)
                     ReplyToCommand(client, "%s %t", PREFIX, "Player Not Muted", iTarget);
-                else if (bRemovingInfraction)
+                else if (bRemovingInfraction) {
                     ProcessUnblock(client, iTarget, view_as<int>(iPunishmentType), sReason, iTargetCount);
-                else
+                    bPlayerFound = true;
+                }
+                else {
                     ProcessBlock(client, iTarget, iPunishmentLength, view_as<int>(iPunishmentType), sReason);
+                    bPlayerFound = true;
+                }
             }
             case P_SILENCE:
             {
                 // If client is silenced or has a mute/gag, let the admin know, else create the infraction:
                 if (!bRemovingInfraction)
                 {
-                    if (!g_esPlayerInfo[iTarget].muteIsMuted && !g_esPlayerInfo[iTarget].gagIsGagged)
+                    if (!g_esPlayerInfo[iTarget].muteIsMuted && !g_esPlayerInfo[iTarget].gagIsGagged) {
                         ProcessBlock(client, iTarget, iPunishmentLength, view_as<int>(iPunishmentType), sReason);
+                        bPlayerFound = true;
+                    }
                     else if (g_esPlayerInfo[iTarget].muteIsMuted && g_esPlayerInfo[iTarget].gagIsGagged)
                         ReplyToCommand(client, "%s %t", PREFIX, "Player Already Silenced", iTarget);
                     else
@@ -127,8 +138,10 @@ public Action ListenerCallback(int client, const char[] command, int args)
                 }
                 else
                 {
-                    if (g_esPlayerInfo[iTarget].muteIsMuted && g_esPlayerInfo[iTarget].gagIsGagged)
+                    if (g_esPlayerInfo[iTarget].muteIsMuted && g_esPlayerInfo[iTarget].gagIsGagged) {
                         ProcessUnblock(client, iTarget, view_as<int>(iPunishmentType), sReason, iTargetCount);
+                        bPlayerFound = true;
+                    }
                     else if (!g_esPlayerInfo[iTarget].muteIsMuted && !g_esPlayerInfo[iTarget].gagIsGagged)
                         ReplyToCommand(client, "%s %t", PREFIX, "Player Not Silenced", iTarget);
                     else
@@ -140,11 +153,10 @@ public Action ListenerCallback(int client, const char[] command, int args)
     
     // This below is for printing the activity to chat:
     // Damn this doesn't look nice, improve it maybe?
+    char sActionBuffer[256];
     if (bTNisML)
     {
         // Print out only the multi-target phrase:
-        
-        char sActionBuffer[256];
         switch (iPunishmentType)
         {
             case P_CHAT:
@@ -190,15 +202,10 @@ public Action ListenerCallback(int client, const char[] command, int args)
                     FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "UnSilenced Player", sTargetBuffer, sReason);
             }
         }
-        
-        ShowActivity2(client, PREFIX, " %s", sActionBuffer);
-        
     }
     else
     {
         // Print out the target that got punished:
-        
-        char sActionBuffer[256];
         switch (iPunishmentType)
         {
             case P_CHAT:
@@ -244,10 +251,11 @@ public Action ListenerCallback(int client, const char[] command, int args)
                     FormatEx(sActionBuffer, sizeof(sActionBuffer), "%t", "UnSilenced Player", "_s", sTargetBuffer, sReason);
             }
         }
-        
-        ShowActivity2(client, PREFIX, " %s", sActionBuffer);
     }
-
+    
+    if (bPlayerFound)
+        ShowActivity2(client, PREFIX, "%s", sActionBuffer);
+        
     return Plugin_Stop;
 }
 
