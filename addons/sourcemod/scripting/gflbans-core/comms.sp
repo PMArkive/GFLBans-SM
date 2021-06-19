@@ -1,3 +1,16 @@
+// Register comms commands:
+void RegisterCommCommands()
+{
+    AddCommandListener(ListenerCallback, "sm_gag");
+    AddCommandListener(ListenerCallback, "sm_mute");
+    AddCommandListener(ListenerCallback, "sm_silence");
+    AddCommandListener(ListenerCallback, "sm_ungag");
+    AddCommandListener(ListenerCallback, "sm_unmute");
+    AddCommandListener(ListenerCallback, "sm_unsilence");
+    
+    RegConsoleCmd("sm_comms", Command_Comms, "Displays a player communication status");
+}
+
 public Action ListenerCallback(int client, const char[] command, int args)
 {
     if (client && !CheckCommandAccess(client, command, ADMFLAG_CHAT))
@@ -27,7 +40,7 @@ public Action ListenerCallback(int client, const char[] command, int args)
         
     if (bRemovingInfraction ? args < 2  : args < 3)
     {
-        ReplyToCommand(client, "%s Usage: %s <#userid|name> %s", PREFIX, command, bRemovingInfraction ? "[reason]" : "<time|0> [reason]");
+        ReplyToCommand(client, "%sUsage: %s <#userid|name> %s", PREFIX, command, bRemovingInfraction ? "[reason]" : "<time|0> [reason]");
         return Plugin_Stop;
     }
     
@@ -94,9 +107,9 @@ public Action ListenerCallback(int client, const char[] command, int args)
             {
                 // If client is gagged/ungagged, let the admin know, else create the infraction:
                 if (g_esPlayerInfo[iTarget].gagIsGagged && !bRemovingInfraction)
-                    ReplyToCommand(client, "%s %t", PREFIX, "Player Already Gagged", iTarget);
+                    ReplyToCommand(client, "%s%t", PREFIX, "Player Already Gagged", iTarget);
                 else if (!g_esPlayerInfo[iTarget].gagIsGagged && bRemovingInfraction)
-                    ReplyToCommand(client, "%s %t", PREFIX, "Player Not Gagged", iTarget);
+                    ReplyToCommand(client, "%s%t", PREFIX, "Player Not Gagged", iTarget);
                 else if (bRemovingInfraction) {
                     ProcessUnblock(client, iTarget, view_as<int>(iPunishmentType), sReason, iTargetCount);
                     bPlayerFound = true;
@@ -110,9 +123,9 @@ public Action ListenerCallback(int client, const char[] command, int args)
             {
                 // If client is muted/unmuted, let the admin know, else create the infraction:
                 if (g_esPlayerInfo[iTarget].muteIsMuted && !bRemovingInfraction)
-                    ReplyToCommand(client, "%s %t", PREFIX, "Player Already Muted", iTarget);
+                    ReplyToCommand(client, "%s%t", PREFIX, "Player Already Muted", iTarget);
                 else if (!g_esPlayerInfo[iTarget].muteIsMuted && bRemovingInfraction)
-                    ReplyToCommand(client, "%s %t", PREFIX, "Player Not Muted", iTarget);
+                    ReplyToCommand(client, "%s%t", PREFIX, "Player Not Muted", iTarget);
                 else if (bRemovingInfraction) {
                     ProcessUnblock(client, iTarget, view_as<int>(iPunishmentType), sReason, iTargetCount);
                     bPlayerFound = true;
@@ -132,9 +145,9 @@ public Action ListenerCallback(int client, const char[] command, int args)
                         bPlayerFound = true;
                     }
                     else if (g_esPlayerInfo[iTarget].muteIsMuted && g_esPlayerInfo[iTarget].gagIsGagged)
-                        ReplyToCommand(client, "%s %t", PREFIX, "Player Already Silenced", iTarget);
+                        ReplyToCommand(client, "%s%t", PREFIX, "Player Already Silenced", iTarget);
                     else
-                        ReplyToCommand(client, "%s %t", PREFIX, "Player Muted Or Gagged", iTarget);
+                        ReplyToCommand(client, "%s%t", PREFIX, "Player Muted Or Gagged", iTarget);
                 }
                 else
                 {
@@ -143,9 +156,9 @@ public Action ListenerCallback(int client, const char[] command, int args)
                         bPlayerFound = true;
                     }
                     else if (!g_esPlayerInfo[iTarget].muteIsMuted && !g_esPlayerInfo[iTarget].gagIsGagged)
-                        ReplyToCommand(client, "%s %t", PREFIX, "Player Not Silenced", iTarget);
+                        ReplyToCommand(client, "%s%t", PREFIX, "Player Not Silenced", iTarget);
                     else
-                        ReplyToCommand(client, "%s %t", PREFIX, "Player Not Silenced", iTarget);  // This should be another message
+                        ReplyToCommand(client, "%s%t", PREFIX, "Player Not Silenced", iTarget);  // This should be another message
                 }
             }
         }
@@ -289,7 +302,7 @@ public Action Timer_GagExpire(Handle timer, DataPack dp)
     if (!iTarget)
         return;
         
-    PrintToChat(iTarget, "%s %t", PREFIX, "Gag Expired");
+    PrintToChat(iTarget, "%s%t", PREFIX, "Gag Expired");
         
     g_esPlayerInfo[iTarget].ClearGag();
     if (IsClientInGame(iTarget))
@@ -354,7 +367,7 @@ public Action Timer_MuteExpire(Handle timer, DataPack dp)
     if (!iTarget)
         return;
     
-    PrintToChat(iTarget, "%s %t", PREFIX, "Mute Expired");
+    PrintToChat(iTarget, "%s%t", PREFIX, "Mute Expired");
     
     g_esPlayerInfo[iTarget].ClearMute();
     if (IsClientInGame(iTarget))
@@ -499,4 +512,37 @@ stock void ProcessUnblock(int iClient, int iTarget, int iPunishmentType, const c
         
         SetupRemoval(iClient, iTarget, iPunishmentType, sReason);
     }
+}
+
+/***************************************
+ * Command_Comms command
+***************************************/
+public Action Command_Comms(int iClient, int iArgs)
+{
+    if (!iClient)
+    {
+        ReplyToCommand(iClient, "%sThis command can only be used in the server.", PREFIX);
+        return Plugin_Handled;
+    }
+    
+    if (!IsValidClient(iClient))
+        return Plugin_Handled;
+        
+    char sArgs[256];
+    GetCmdArg(1, sArgs, sizeof(sArgs));
+    int iTarget = FindTarget(iClient, sArgs, _, false);
+    if (!IsValidClient(iTarget))
+        return Plugin_Handled;
+        
+    if (g_esPlayerInfo[iTarget].muteIsMuted || g_esPlayerInfo[iTarget].gagIsGagged)
+        ShowCommsMenu(iClient, iTarget);
+    else
+        ReplyToCommand(iClient, "%sThe player %N does not have any comms punishment.", PREFIX, iTarget);
+        
+    return Plugin_Handled;
+}
+
+void ShowCommsMenu(int iClient, int iTarget)
+{
+    
 }

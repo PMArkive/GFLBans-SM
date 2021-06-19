@@ -34,9 +34,9 @@ stock void GetServerInfo()
         g_bServerLocked = false;
 }
 
-stock bool IsValidClient(int client, bool bAlive = false)
+stock bool IsValidClient(int iClient, bool bAlive = false)
 {
-	if (client >= 1 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && (bAlive == false || IsPlayerAlive(client)))
+	if (iClient >= 1 && iClient <= MaxClients && IsClientConnected(iClient) && IsClientInGame(iClient) && (bAlive == false || IsPlayerAlive(iClient)))
 		return true;
 
 	return false;
@@ -45,18 +45,39 @@ stock bool IsValidClient(int client, bool bAlive = false)
 /**
 * Formats the buffer with the specified duration using .2f seconds, minutes, hours, or days.
 *
-* @param seconds The amount of seconds in the timespan
-* @param buffer The buffer to store the result in
-* @param length The max length of the buffer
+* @param iSeconds The amount of seconds in the timespan
+* @param sBuffer The buffer to store the result in
+* @param iLength The max length of the buffer
 **/
-stock void FormatSeconds(int seconds, char[] buffer, int length) {
-	if (seconds < 60) {
-		Format(buffer, length, "%d second%s", seconds, seconds == 1 ? "":"s");
-	} else if (seconds < 60 * 60) {
-		Format(buffer, length, "%.2f minute%s", seconds / 60.0, seconds / 60.0 == 1 ? "":"s");
-	} else if (seconds < 60 * 60 * 24) {
-		Format(buffer, length, "%.2f hour%s", seconds / 60.0 / 60.0, seconds / 60.0 / 60.0 == 1 ? "":"s");
+stock void FormatSeconds(int iSeconds, char[] sBuffer, int iLength) {
+	if (iSeconds < 60) {
+		Format(sBuffer, iLength, "%d second%s", iSeconds, iSeconds == 1 ? "":"s");
+	} else if (iSeconds < 60 * 60) {
+		Format(sBuffer, iLength, "%.2f minute%s", iSeconds / 60.0, iSeconds / 60.0 == 1 ? "":"s");
+	} else if (iSeconds < 60 * 60 * 24) {
+		Format(sBuffer, iLength, "%.2f hour%s", iSeconds / 60.0 / 60.0, iSeconds / 60.0 / 60.0 == 1 ? "":"s");
 	} else {
-		Format(buffer, length, "%.2f day%s", seconds / 60.0 / 60.0 / 24.0, seconds / 60.0 / 60.0 / 24.0 == 1 ? "":"s");
+		Format(sBuffer, iLength, "%.2f day%s", iSeconds / 60.0 / 60.0 / 24.0, iSeconds / 60.0 / 60.0 / 24.0 == 1 ? "":"s");
 	}
+}
+
+void PrintToClientOrServer(int iClient, MsgTypes msgType = MsgType_Chat, const char[] sMessage, any ...)
+{
+    char sMessageBuffer[256];
+    SetGlobalTransTarget(client);
+    VFormat(sMessageBuffer, sizeof(sMessageBuffer), sMessage, 4);
+    
+    if (client == 0)
+        PrintToServer(sMessageBuffer);
+    else
+    {
+        switch (msgType)
+        {
+            case MsgType_Console: PrintToConsole(client, sMessageBuffer);
+            case MsgType_Chat: PrintToChat(client, sMessageBuffer);
+            case MsgType_Reply: ReplyToCommand(client, sMessageBuffer);
+            case MsgType_Center: PrintCenterText(client, sMessageBuffer);
+            case MsgType_Hint: PrintHintText(client, sMessageBuffer);
+        }
+    }
 }

@@ -6,6 +6,16 @@
 #define PLUGIN_URL                  "https://github.com/GFLClan"
 
 /* ===== Global Variables ===== */
+enum MsgTypes
+{
+    MsgType_Server,     /** Text printed to the server's console */
+    MsgType_Console,    /** Text printed in client's console. */
+    MsgType_Chat,       /** Text printed at the bottom of the screen. */
+    MsgType_Reply,      /** Replies with the same msg type as the client used to trigger a command */
+    MsgType_Center,     /** Small, white text printed in the center of the screen. */
+    MsgType_Hint        /** Translucent grey box containing white text at the bottom center of the screen. */
+}
+
 ConVar g_cvAPIUrl;
 ConVar g_cvAPIKey;
 ConVar g_cvAPIServerID;

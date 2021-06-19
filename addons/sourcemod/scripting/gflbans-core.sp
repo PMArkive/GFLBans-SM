@@ -62,16 +62,10 @@ public void OnPluginStart()
     
     g_cvDebug = CreateConVar("gb_enable_debug_mode", "1", "Enable detailed logging of actions. 1 = Enabled, 0 = Disabled.", _, true, 0.0, true, 1.0);
     
-    RegAdminCmd("sm_ban", Command_Ban, ADMFLAG_BAN, "sm_ban <#userid|name> <minutes|0> [reason]");
-    
     RegAdminCmd("sm_gflbans_debug", Command_GFLBansDebug, ADMFLAG_ROOT, "sm_gflbans_debug <#userid|name>");
     
-    AddCommandListener(ListenerCallback, "sm_gag");
-    AddCommandListener(ListenerCallback, "sm_mute");
-    AddCommandListener(ListenerCallback, "sm_silence");
-    AddCommandListener(ListenerCallback, "sm_ungag");
-    AddCommandListener(ListenerCallback, "sm_unmute");
-    AddCommandListener(ListenerCallback, "sm_unsilence");
+    RegisterBanCommands();
+    RegisterCommCommands();
 
     AutoExecConfig(true, "GFLBans-Core");
 }
@@ -140,7 +134,7 @@ public Action Command_GFLBansDebug(int client, int args)
 {
     if (args < 1)
     {
-        ReplyToCommand(client, "%s Usage: sm_gflbans_debug <#userid|name>", PREFIX);
+        ReplyToCommand(client, "%sUsage: sm_gflbans_debug <#userid|name>", PREFIX);
         return Plugin_Handled;
     }
     
@@ -151,7 +145,7 @@ public Action Command_GFLBansDebug(int client, int args)
     if (iTarget == -1 || !IsValidClient(iTarget))
         return Plugin_Handled;
         
-    PrintToChat(client, "%s Debugging values printed to console.", PREFIX);
+    PrintToChat(client, "%sDebugging values printed to console.", PREFIX);
     PrintToConsole(client, "[GFLBans Debug] INT: Current Time = %d", GetTime());
     
     PrintToConsole(client, "[GFLBans Debug] BOOL: PlayerInfo::gagIsGagged = %b", g_esPlayerInfo[iTarget].gagIsGagged);
