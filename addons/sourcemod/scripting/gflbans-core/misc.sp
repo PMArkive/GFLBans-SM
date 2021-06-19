@@ -64,20 +64,20 @@ stock void FormatSeconds(int iSeconds, char[] sBuffer, int iLength) {
 void PrintToClientOrServer(int iClient, MsgTypes msgType = MsgType_Chat, const char[] sMessage, any ...)
 {
     char sMessageBuffer[256];
-    SetGlobalTransTarget(client);
+    SetGlobalTransTarget(iClient);
     VFormat(sMessageBuffer, sizeof(sMessageBuffer), sMessage, 4);
     
-    if (client == 0)
+    if (iClient == 0)
         PrintToServer(sMessageBuffer);
     else
     {
         switch (msgType)
         {
-            case MsgType_Console: PrintToConsole(client, sMessageBuffer);
-            case MsgType_Chat: PrintToChat(client, sMessageBuffer);
-            case MsgType_Reply: ReplyToCommand(client, sMessageBuffer);
-            case MsgType_Center: PrintCenterText(client, sMessageBuffer);
-            case MsgType_Hint: PrintHintText(client, sMessageBuffer);
+            case MsgType_Console: PrintToConsole(iClient, sMessageBuffer);
+            case MsgType_Chat: PrintToChat(iClient, sMessageBuffer);
+            case MsgType_Reply: ReplyToCommand(iClient, sMessageBuffer);
+            case MsgType_Center: PrintCenterText(iClient, sMessageBuffer);
+            case MsgType_Hint: PrintHintText(iClient, sMessageBuffer);
         }
     }
 }
