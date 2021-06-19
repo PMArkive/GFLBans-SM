@@ -262,7 +262,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
         ErrorLog("---> HTTP Status = %d", response.Status);
         ErrorLog("---> Detail = %s", sBuffer);
         
-        PrintToClientOrServer(iClient, "%sUnable to create infraction. Detail: %s", PREFIX, sBuffer);
+        PrintToClientOrServer(iClient, _, "%sUnable to create infraction. Detail: %s", PREFIX, sBuffer);
         //PrintToChat(iClient, "%s Unable to create infraction. Detail: %s", PREFIX, sBuffer);
         return;
     }
@@ -273,7 +273,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
         ErrorLog("---> ENDPOINT = /infractions/");
         ErrorLog("---> HTTP Status = %d", response.Status);
         
-        PrintToClientOrServer(iClient, "%s%t", PREFIX, "API Create Infraction Failure", response.Status);
+        PrintToClientOrServer(iClient, _, "%s%t", PREFIX, "API Create Infraction Failure", response.Status);
         //ReplyToCommand(iClient, "%s %t", PREFIX, "API Create Infraction Failure", response.Status);
         return;
     }
@@ -284,7 +284,7 @@ void OnCreateInfractionsCallback(HTTPResponse response, DataPack dp, const char[
         ErrorLog("---> ENDPOINT = /infractions/");
         ErrorLog("---> HTTP Status = %d", response.Status);
         
-        PrintToClientOrServer(iClient, "%sSomething went wrong with the API, please contact a higher up...", PREFIX);
+        PrintToClientOrServer(iClient, _, "%sSomething went wrong with the API, please contact a higher up...", PREFIX);
         //ReplyToCommand(iClient, "%s Something went wrong with the API, please contact a higher up...", PREFIX);
         return;
     }
@@ -443,7 +443,7 @@ void OnRemoveInfractionsCallback(HTTPResponse response, DataPack dp, const char[
         ErrorLog("---> ENDPOINT = /infractions/remove");
         ErrorLog("---> HTTP Status = %d", response.Status);
         
-        PrintToClientOrServer(iClient, "%s%t", PREFIX, "API Remove Infraction Failure", response.Status);
+        PrintToClientOrServer(iClient, _, "%s%t", PREFIX, "API Remove Infraction Failure", response.Status);
         //ReplyToCommand(iClient, "%s %d", PREFIX, response.Status);
         return;
     }
@@ -454,7 +454,7 @@ void OnRemoveInfractionsCallback(HTTPResponse response, DataPack dp, const char[
         ErrorLog("---> ENDPOINT = /infractions/remove");
         ErrorLog("---> HTTP Status = %d", response.Status);
         
-        PrintToClientOrServer(iClient, "%sSomething went wrong with the API, please contact a higher up...", PREFIX)
+        PrintToClientOrServer(iClient, _, "%sSomething went wrong with the API, please contact a higher up...", PREFIX);
         //ReplyToCommand(iClient, "%s Something went wrong with the API, please contact a higher up...", PREFIX);
         return;
     }
