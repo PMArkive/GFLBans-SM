@@ -1,60 +1,71 @@
 #include <sourcemod>
-#include <ripext>
+#include <basecomm>
+
+#include <gflbans>
 
 #pragma semicolon 1
 #pragma newdecls required
 
+#include "gflbans-core/variables.sp"
+#include "gflbans-core/forwards.sp"
+#include "gflbans-core/logging.sp"
 #include "gflbans-core/natives.sp"
 #include "gflbans-core/misc.sp"
 #include "gflbans-core/api.sp"
-
-/* ===== Global Variables ===== */
-ConVar g_cvAPIUrl;
-ConVar g_cvAPIKey;
-ConVar g_cvAPIServerID;
-ConVar g_cvAcceptGlobalBans;
-ConVar g_cvDebug;
-char g_sAPIUrl[512];
-char g_sMap[64];
-char g_sMod[16];
-char g_sServerHostname[96];
-char g_sServerOS[8];
-int g_iMaxPlayers;
-bool g_bServerLocked;
-Handle hbTimer;
-Handle g_hGData;
-HTTPClient httpClient;
-
-/* ===== Definitions ===== */
-#define PREFIX "\x01[\x0CGFLBans\x01]"
+#include "gflbans-core/events.sp"
+#include "gflbans-core/bans.sp"
+#include "gflbans-core/comms.sp"
 
 /* ===== Plugin Info ===== */
 public Plugin myinfo =
 {
-    name        =    "GFLBans - Core",
-    author        =    "Infra",
-    description    =    "GFLBans Core plugin",
-    version        =    "0.3-BETA",
-	url        =    "https://github.com/GFLClan"
+    name        =   PLUGIN_NAME,
+    author      =   PLUGIN_AUTHOR,
+    description =   PLUGIN_DESCRIPTION,
+    version     =   PLUGIN_VERSION,
+    url         =   PLUGIN_URL
 };
 
 /* ===== Main Code ===== */
-
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+    RegPluginLibrary("gflbans");
+    
     CreateNatives(); // From natives.sp
+    CreateForwards(); // From forwards.sp
+    
     return APLRes_Success;
 }
 
 public void OnPluginStart()
 {
-    g_hGData = LoadGameConfigFile("gflbans.games");
+    LoadTranslations("gflbans-core.phrases");
+    LoadTranslations("common.phrases");
+    
+    Handle gameData = LoadGameConfigFile("gflbans.games");
+    if (gameData == INVALID_HANDLE)
+        SetFailState("Can't find gflbans.games.txt gamedata.");
+		
+    if (GameConfGetOffset(gameData, "CheckOS") == 1) // CheckOS = 1 for Windows, CheckOS = 2 for Linux.
+        Format(g_sServerOS, sizeof(g_sServerOS), "windows");
+    else
+        Format(g_sServerOS, sizeof(g_sServerOS), "linux"); // We are falling back to Linux.
+        
+    delete gameData;
 
-    g_cvAPIUrl = CreateConVar("gb_api_url", "bans.gflclan.com/api/v1", "GFLBans API URL");
+    g_cvAPIUrl = CreateConVar("gb_api_url", "", "GFLBans API URL");
     g_cvAPIKey = CreateConVar("gb_api_key", "", "GFLBans API Key", FCVAR_PROTECTED);
     g_cvAPIServerID = CreateConVar("gb_api_svid", "", "GFLBans API Server ID.", FCVAR_PROTECTED);
+    
     g_cvAcceptGlobalBans = CreateConVar("gb_accept_global_infractions", "1", "Accept global GFL bans. 1 = Enabled, 0 = Disabled.", _, true, 0.0, true, 1.0);
-    g_cvDebug = CreateConVar("gb_enable_debug_mode", "0", "Enable detailed logging of actions. 1 = Enabled, 0 = Disabled.", _, true, 0.0, true, 1.0);
+    g_cvInfractionScope = CreateConVar("gb_infractions_scope", "1", "Infraction Scope. 1 = Server, 0 = Global.", _, true, 0.0, true, 1.0);
+    
+    g_cvDebug = CreateConVar("gb_enable_debug_mode", "1", "Enable detailed logging of actions. 1 = Enabled, 0 = Disabled.", _, true, 0.0, true, 1.0);
+    
+    RegAdminCmd("sm_gflbans_debug", Command_GFLBansDebug, ADMFLAG_ROOT, "sm_gflbans_debug <#userid|name>");
+    
+    RegisterBanCommands();
+    RegisterCommCommands();
 
     AutoExecConfig(true, "GFLBans-Core");
 }
@@ -69,9 +80,9 @@ public void OnConfigsExecuted()
     GetConVarString(g_cvAPIKey, APIKey, sizeof(APIKey));
     GetConVarString(g_cvAPIServerID, APIServerID, sizeof(APIServerID));
     Format(APIAuthHeader, sizeof(APIAuthHeader), "SERVER %s %s", APIServerID, APIKey);
-
-    CheckMod(g_sMod); // Check what game we are on.
-    CheckOS(g_hGData, g_sServerOS); // Check what OS we are on.
+    
+    if(httpClient != null)
+    	delete httpClient;
 
     // Start the HTTP Connection:
     httpClient = new HTTPClient(g_sAPIUrl);
@@ -80,17 +91,12 @@ public void OnConfigsExecuted()
 
 public void OnMapStart()
 {
-    // Fire a single heartbeat pulse right when map starts.
-    GetServerInfo(); // Grab whatever is needed for the Heartbeat pulse.
-    API_Heartbeat(httpClient, g_sServerHostname, g_iMaxPlayers, g_sServerOS, g_sMod, g_sMap, g_bServerLocked, g_cvAcceptGlobalBans.BoolValue);
-
-    hbTimer = CreateTimer(30.0, pulseTimer, _, TIMER_REPEAT); // Start the Heartbeat pulse timer
+    hbTimer = CreateTimer(30.0, pulseTimer, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE); // Start the Heartbeat pulse timer
 }
 
 public Action pulseTimer(Handle timer)
 {
-    GetServerInfo(); // Update whatever is needed for the Heartbeat pulse.
-    API_Heartbeat(httpClient, g_sServerHostname, g_iMaxPlayers, g_sServerOS, g_sMod, g_sMap, g_bServerLocked, g_cvAcceptGlobalBans.BoolValue);
+    API_Heartbeat();
 
     return Plugin_Continue;
 }
@@ -99,21 +105,146 @@ public void OnMapEnd()
 {
     CloseHandle(hbTimer); // Close the Heartbeat timer handle (started in OnMapStart)
     if (g_cvDebug.BoolValue)
-        LogAction(0, -1, "[GFLBans-Core] DEBUG >> Map is ending, cleaning heartbeat pulse timer handle.");
+        DebugLog("[GFLBans-Core] DEBUG >> Map is ending, cleaning heartbeat pulse timer handle.");
 }
 
-void GetServerInfo()
+public void OnClientPostAdminCheck(int client)
 {
-    char svPwd[128];
+    API_CheckInfractions(client);
+}
 
-    GetCurrentMap(g_sMap, sizeof(g_sMap));
-    g_iMaxPlayers = GetMaxHumanPlayers();
-    GetConVarString(FindConVar("hostname"), g_sServerHostname, sizeof(g_sServerHostname));
+public void OnClientConnected(int client)
+{
+    // Clear all the details for a newly connected client:
+    g_esPlayerInfo[client].ClearAll();
+}
 
-    // Check if the server is locked:
-    GetConVarString(FindConVar("sv_password"), svPwd, sizeof(svPwd));
-    if(!StrEqual(svPwd, ""))
-        g_bServerLocked = true;
-    else 
-        g_bServerLocked = false;
+public void OnClientDisconnect(int client)
+{
+    // Clear all the details for a disconnected client:
+    g_esPlayerInfo[client].ClearAll();
+}
+
+/**
+* Main functions
+*
+* Debug Print Variables
+**/
+public Action Command_GFLBansDebug(int client, int args)
+{
+    if (args < 1)
+    {
+        ReplyToCommand(client, "%sUsage: sm_gflbans_debug <#userid|name>", PREFIX);
+        return Plugin_Handled;
+    }
+    
+    char sBuffer[64];
+    GetCmdArg(1, sBuffer, sizeof(sBuffer));
+    
+    int iTarget = FindTarget(client, sBuffer, true, true);
+    if (iTarget == -1 || !IsValidClient(iTarget))
+        return Plugin_Handled;
+        
+    PrintToChat(client, "%sDebugging values printed to console.", PREFIX);
+    PrintToConsole(client, "[GFLBans Debug] INT: Current Time = %d", GetTime());
+    
+    PrintToConsole(client, "[GFLBans Debug] BOOL: PlayerInfo::gagIsGagged = %b", g_esPlayerInfo[iTarget].gagIsGagged);
+    PrintToConsole(client, "[GFLBans Debug] INT: PlayerInfo::gagExpiration = %d", g_esPlayerInfo[iTarget].gagExpiration);
+    PrintToConsole(client, "[GFLBans Debug] STR: PlayerInfo::gagReason = %s", g_esPlayerInfo[iTarget].gagReason);
+    PrintToConsole(client, "[GFLBans Debug] STR: PlayerInfo::gagAdminName = %s", g_esPlayerInfo[iTarget].gagAdminName);
+    PrintToConsole(client, "[GFLBans Debug] INT: PlayerInfo::gagType = %d", view_as<int>(g_esPlayerInfo[iTarget].gagType));
+
+    PrintToConsole(client, "[GFLBans Debug] BOOL: PlayerInfo::muteIsMuted = %b", g_esPlayerInfo[iTarget].muteIsMuted);
+    PrintToConsole(client, "[GFLBans Debug] INT: PlayerInfo::muteExpiration = %d", g_esPlayerInfo[iTarget].muteExpiration);
+    PrintToConsole(client, "[GFLBans Debug] STR: PlayerInfo::muteReason = %s", g_esPlayerInfo[iTarget].muteReason);
+    PrintToConsole(client, "[GFLBans Debug] STR: PlayerInfo::muteAdminName = %s", g_esPlayerInfo[iTarget].muteAdminName);
+    PrintToConsole(client, "[GFLBans Debug] INT: PlayerInfo::muteType = %d", view_as<int>(g_esPlayerInfo[iTarget].muteType));
+    
+    return Plugin_Handled;
+}
+
+/**
+* Main functions
+*
+* Create punishment
+**/
+void SetupInfraction(int iClient = 0, int iTarget, int iLength, const char[] sReason, int iPunishmentFlags)
+{
+    CreateInfraction infraction = new CreateInfraction();
+    
+    if (iLength)
+        infraction.Duration = iLength;
+        
+    // Set player:
+    PlayerObjSimple targetObjSimple = new PlayerObjSimple();
+    targetObjSimple.SetService("steam");
+    targetObjSimple.SetID64(iTarget);
+    targetObjSimple.SetIP(iTarget);
+    
+    infraction.SetPlayer(targetObjSimple);
+    
+    // Set admin field if it's not console:
+    if (iClient)
+    {
+        PlayerObjNoIp adminObjNoIp = new PlayerObjNoIp();
+        adminObjNoIp.SetService("steam");
+        adminObjNoIp.SetID64(iClient);
+        
+        infraction.SetAdmin(adminObjNoIp);
+        
+        delete adminObjNoIp;
+    }
+    
+    // Set other fields:
+    infraction.SetReason(sReason);
+    infraction.SetPunishment(iPunishmentFlags);
+    infraction.SetScope(view_as<InfractionScope>(g_cvInfractionScope.IntValue));
+    infraction.SessionOnly = false;
+    infraction.OnlineOnly = false;
+    
+    API_CreateInfraction(iClient, iTarget, iLength, sReason, iPunishmentFlags, infraction);
+    
+    // Cleanup:
+    delete targetObjSimple;
+    delete infraction;
+}
+
+/**
+* Main functions
+*
+* Remove Infraction
+**/
+void SetupRemoval(int iClient, int iTarget, int iPunishmentFlags, const char[] sReason)
+{
+    RemoveInfractionsOfPlayer removeInfraction = new RemoveInfractionsOfPlayer();
+    
+    // Set player:
+    PlayerObjNoIp targetObjNoIp = new PlayerObjNoIp();
+    targetObjNoIp.SetService("steam");
+    targetObjNoIp.SetID64(iTarget);
+    
+    removeInfraction.SetPlayer(targetObjNoIp);
+    
+    // Set admin field if it's not console:
+    if (iClient)
+    {
+        PlayerObjNoIp adminObjNoIp = new PlayerObjNoIp();
+        adminObjNoIp.SetService("steam");
+        adminObjNoIp.SetID64(iClient);
+        
+        removeInfraction.SetAdmin(adminObjNoIp);
+        
+        delete adminObjNoIp;
+    }
+    
+    // Set other fields:
+    removeInfraction.SetReason(sReason);
+    removeInfraction.SetIncludeOtherServers = true;
+    removeInfraction.SetRestrictTypes(iPunishmentFlags);
+    
+    API_RemoveInfraction(iClient, iTarget, sReason, iPunishmentFlags, removeInfraction);
+    
+    // Cleanup:
+    delete targetObjNoIp;
+    delete removeInfraction;
 }

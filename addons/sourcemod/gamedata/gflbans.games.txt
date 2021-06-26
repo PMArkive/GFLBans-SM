@@ -4,7 +4,7 @@
     {
         "Offsets"
         {
-            "OSCheck"
+            "CheckOS"
             {
                 "windows"   "1"
                 "linux"     "2"
