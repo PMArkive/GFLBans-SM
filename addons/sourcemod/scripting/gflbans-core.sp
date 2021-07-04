@@ -1,5 +1,6 @@
 #include <sourcemod>
 #include <basecomm>
+#include <sdktools>
 
 #include <gflbans>
 

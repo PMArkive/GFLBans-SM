@@ -528,6 +528,16 @@ public Action Command_Comms(int iClient, int iArgs)
     if (!IsValidClient(iClient))
         return Plugin_Handled;
         
+    if (iArgs == 0)
+    {
+        if (g_esPlayerInfo[iClient].muteIsMuted || g_esPlayerInfo[iClient].gagIsGagged)
+            ShowCommsMenu(iClient, iClient);
+        else
+            ReplyToCommand(iClient, "%sYou not have any comms punishment.", PREFIX);
+            
+        return Plugin_Handled;
+    }
+        
     char sArgs[256];
     GetCmdArg(1, sArgs, sizeof(sArgs));
     int iTarget = FindTarget(iClient, sArgs, _, false);
@@ -537,12 +547,152 @@ public Action Command_Comms(int iClient, int iArgs)
     if (g_esPlayerInfo[iTarget].muteIsMuted || g_esPlayerInfo[iTarget].gagIsGagged)
         ShowCommsMenu(iClient, iTarget);
     else
-        ReplyToCommand(iClient, "%sThe player %N does not have any comms punishment.", PREFIX, iTarget);
+        ReplyToCommand(iClient, "%sThe player \"%N\" does not have any comms punishment.", PREFIX, iTarget);
         
     return Plugin_Handled;
 }
 
 void ShowCommsMenu(int iClient, int iTarget)
 {
+    int iTargetUserId = GetClientUserId(iTarget);
     
+    Menu hMenu = CreateMenu(MenuHandler_CommsMenu);
+    hMenu.SetTitle("List of punishments for %N:", iTarget);
+    hMenu.Pagination = MENU_NO_PAGINATION;
+    hMenu.ExitButton = true;
+    
+    char sBuffer[256], sOption[32];
+    
+    if (g_esPlayerInfo[iTarget].gagType > P_NOT)
+    {
+        FormatEx(sBuffer, sizeof(sBuffer), "View Gag", iClient);
+        FormatEx(sOption, sizeof(sOption), "0 %d", iTargetUserId);
+        hMenu.AddItem(sOption, sBuffer);
+    }
+    
+    if (g_esPlayerInfo[iTarget].muteType > P_NOT)
+    {
+        FormatEx(sBuffer, sizeof(sBuffer), "View Mute", iClient);
+        FormatEx(sOption, sizeof(sOption), "1 %d", iTargetUserId);
+        hMenu.AddItem(sOption, sBuffer);
+    }
+    
+    hMenu.Display(iClient, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_CommsMenu(Menu hMenu, MenuAction action, int iParam1, int iParam2)
+{
+    switch (action)
+    {
+        case MenuAction_Select:
+        {
+            char sBuffer[32], sTemp[3][8];
+            hMenu.GetItem(iParam2, sBuffer, sizeof(sBuffer));
+            ExplodeString(sBuffer, " ", sTemp, sizeof(sTemp), sizeof(sTemp[]));
+            
+            int iTarget = GetClientOfUserId(StringToInt(sTemp[1]));
+            if (!IsValidClient(iTarget))
+            {
+                PrintToChat(iParam1, "%sThe target is no longer valid.", PREFIX);
+            }
+            else
+                DisplayPanelToClient(iParam1, iTarget, StringToInt(sTemp[0]));
+        }
+        case MenuAction_End:
+            delete hMenu;
+    }
+}
+
+void DisplayPanelToClient(int iClient, int iTarget, int iViewType)
+{
+    char sBuffer[256];
+    if (iViewType == 0)
+        FormatEx(sBuffer, sizeof(sBuffer), "%N gag information:", iTarget);
+    else if (iViewType == 1)
+        FormatEx(sBuffer, sizeof(sBuffer), "%N mute information:", iTarget);
+    
+    Panel hPanel = new Panel();
+    hPanel.SetTitle(sBuffer);
+    hPanel.DrawText(" ");
+    
+    if (iViewType == 0)
+    {
+        FormatEx(sBuffer, sizeof(sBuffer), "- Admin: %s",g_esPlayerInfo[iTarget].gagAdminName);
+        hPanel.DrawText(sBuffer);
+        
+        if (g_esPlayerInfo[iTarget].gagType == P_PERM)
+        {
+            hPanel.DrawText("- Time Remaining: Forever");
+            hPanel.DrawText("- Expires: NEVER");
+        }
+        else if (g_esPlayerInfo[iTarget].gagType == P_SESS)
+        {
+            hPanel.DrawText("- Time Remaining: Till rejoin/mapchange");
+            hPanel.DrawText("- Expires: Session");
+        }
+        else
+        {
+            char sTimeRemaining[256], sExpireTime[256];
+            FormatSeconds(g_esPlayerInfo[iTarget].gagExpiration - GetTime(), sTimeRemaining, sizeof(sTimeRemaining));
+            Format(sTimeRemaining, sizeof(sTimeRemaining), "- Time Remaining: %s", sTimeRemaining);
+            hPanel.DrawText(sTimeRemaining);
+            
+            FormatTime(sExpireTime, sizeof(sExpireTime), NULL_STRING, g_esPlayerInfo[iTarget].gagExpiration);
+            Format(sExpireTime, sizeof(sExpireTime), "- Expires: %s", sExpireTime);
+            hPanel.DrawText(sExpireTime);
+        }
+        
+        FormatEx(sBuffer, sizeof(sBuffer), "- Reason: %s", g_esPlayerInfo[iTarget].gagReason);
+        hPanel.DrawText(sBuffer);
+    }
+    else if (iViewType == 1)
+    {
+        FormatEx(sBuffer, sizeof(sBuffer), "- Admin: %s",g_esPlayerInfo[iTarget].muteAdminName);
+        hPanel.DrawText(sBuffer);
+        
+        if (g_esPlayerInfo[iTarget].muteType == P_PERM)
+        {
+            hPanel.DrawText("- Time Remaining: Forever");
+            hPanel.DrawText("- Expires: NEVER");
+        }
+        else if (g_esPlayerInfo[iTarget].muteType == P_SESS)
+        {
+            hPanel.DrawText("- Time Remaining: Till rejoin/mapchange");
+            hPanel.DrawText("- Expires: Session");
+        }
+        else
+        {
+            char sTimeRemaining[256], sExpireTime[256];
+            FormatSeconds(g_esPlayerInfo[iTarget].muteExpiration - GetTime(), sTimeRemaining, sizeof(sTimeRemaining));
+            Format(sTimeRemaining, sizeof(sTimeRemaining), "- Time Remaining: %s", sTimeRemaining);
+            hPanel.DrawText(sTimeRemaining);
+            
+            FormatTime(sExpireTime, sizeof(sExpireTime), NULL_STRING, g_esPlayerInfo[iTarget].muteExpiration);
+            Format(sExpireTime, sizeof(sExpireTime), "- Expires: %s", sExpireTime);
+            hPanel.DrawText(sExpireTime);
+        }
+        
+        FormatEx(sBuffer, sizeof(sBuffer), "- Reason: %s", g_esPlayerInfo[iTarget].muteReason);
+        hPanel.DrawText(sBuffer);
+    }
+    
+    hPanel.DrawText(" ");
+    hPanel.DrawItem("Exit", ITEMDRAW_CONTROL);
+    hPanel.Send(iClient, PanelMenu_Handler, MENU_TIME_FOREVER);
+	
+    delete hPanel;
+}
+
+public int PanelMenu_Handler(Menu hMenu, MenuAction action, int iClient, int iParam2)
+{
+    switch(action)
+    {
+        case MenuAction_Select:
+        {
+    		if (iParam2 == 1)
+    			EmitSoundToClient(iClient, "buttons/combine_button7.wav");
+        }
+        case MenuAction_End:
+            delete hMenu;
+    }
 }
