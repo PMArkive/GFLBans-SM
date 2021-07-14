@@ -22,6 +22,7 @@ ConVar g_cvAPIServerID;
 
 ConVar g_cvAcceptGlobalBans;
 ConVar g_cvInfractionScope;
+ConVar g_cvShowJoinMessage;
 
 ConVar g_cvDebug;
 
@@ -34,6 +35,7 @@ char g_sServerOS[8];
 int g_iMaxPlayers;
 
 bool g_bServerLocked;
+bool g_bShowJoinMessage;
 
 Handle hbTimer;
 

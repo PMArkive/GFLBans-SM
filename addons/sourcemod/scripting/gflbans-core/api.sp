@@ -482,3 +482,11 @@ void OnRemoveInfractionsCallback(HTTPResponse response, DataPack dp, const char[
     Call_PushString(sReason);
     Call_Finish();
 }
+
+/***************************************
+ * Get Infractions Count API
+***************************************/
+void API_GetPlayerStats(int iClient, int iReplyTarget = -1)
+{
+    
+}
