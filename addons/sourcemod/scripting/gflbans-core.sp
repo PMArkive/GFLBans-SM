@@ -1,6 +1,7 @@
 #include <sourcemod>
 #include <basecomm>
 #include <sdktools>
+#include <adminmenu>
 
 #include <gflbans>
 
@@ -16,6 +17,7 @@
 #include "gflbans-core/events.sp"
 #include "gflbans-core/bans.sp"
 #include "gflbans-core/comms.sp"
+#include "gflbans-core/adminmenu.sp"
 
 /* ===== Plugin Info ===== */
 public Plugin myinfo =
